@@ -11,6 +11,7 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
+from .sampling import validate_sampling
 
 
 def dump(path: Path, value: Any) -> None:
@@ -56,6 +57,7 @@ class Backend:
     timeout: int = 300
 
     def prepare(self, messages: list[dict], sampling: dict, prompt_format: dict) -> tuple[str, dict]:
+        validate_sampling(self.name, self.mode, sampling)
         root = self.base_url.rstrip("/")
         if self.name == "mock":
             return "mock://generate", {"messages": messages, "sampling": sampling}
@@ -109,6 +111,7 @@ def run(scenario_path: str, config_path: str, output: str) -> Path:
     if backend.name in {"ninfer", "strata"} and not engine.get("verified_openai_api", False):
         raise ValueError(f"{backend.name} adapter is not verified; set verified_openai_api only after checking its server")
     sampling = config.get("sampling", {})
+    validate_sampling(backend.name, backend.mode, sampling)
     fmt = config.get("prompt_format", {})
     turns = scenario["turns"]
     if not isinstance(turns, list) or not turns:
