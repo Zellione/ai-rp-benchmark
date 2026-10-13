@@ -1,0 +1,4 @@
+{
+  "backend": {"name": "mock", "mode": "chat", "model": "mock"},
+  "sampling": {"temperature": 0.85, "top_p": 0.95, "max_tokens": 200}
+}

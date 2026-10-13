@@ -1,0 +1,4 @@
+{
+  "backend": {"name": "llamacpp", "base_url": "http://127.0.0.1:8080", "model": "local-model", "mode": "chat"},
+  "sampling": {"temperature": 0.85, "top_p": 0.95, "max_tokens": 256}
+}

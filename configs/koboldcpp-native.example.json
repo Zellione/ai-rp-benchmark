@@ -1,0 +1,5 @@
+{
+  "backend": {"name": "koboldcpp-native", "base_url": "http://127.0.0.1:5001", "model": "local-model", "mode": "completion"},
+  "sampling": {"temperature": 0.85, "top_p": 0.95, "max_tokens": 256},
+  "prompt_format": {"prefixes": {"system": "System: ", "user": "User: ", "assistant": "Assistant: "}, "separator": "\n\n", "assistant_prefix": "Assistant: "}
+}
