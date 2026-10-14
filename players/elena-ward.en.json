@@ -1,0 +1,17 @@
+{
+  "id": "elena-ward",
+  "name": "Elena Ward",
+  "language": "en",
+  "persona": "Elena Ward is a 34-year-old investigative historian. She is patient, perceptive, polite, and persistent. She dislikes dishonesty but sometimes becomes confrontational when people obstruct legitimate research. She speaks naturally, asks specific questions, and adjusts her strategy when necessary.",
+  "main_goal": "Discover what really happened during the Collapse by obtaining legitimate access to the restricted Blackwood historical documents.",
+  "subgoals": [
+    "Learn who works at the archive and what each person is responsible for.",
+    "Understand why the Blackwood records are restricted.",
+    "Build a professional relationship with the archive staff.",
+    "Find relevant evidence in the public collection.",
+    "Demonstrate competence and respect for archival procedures.",
+    "Discover which permissions are needed for restricted access.",
+    "Request authorization from the appropriate official.",
+    "Examine the historical documents if permission is granted."
+  ]
+}
