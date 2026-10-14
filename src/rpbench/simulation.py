@@ -12,6 +12,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from .core import Backend, append, dump, load
+from .characters import build_npc_prompt
 from .sampling import validate_sampling
 
 
@@ -208,7 +209,9 @@ def run_simulation(
     )
 
     player_prompt = create_player_prompt(player)
-    npc_prompt = create_npc_prompt(scenario)
+    npc_prompt, loaded_cards = build_npc_prompt(
+        scenario, scenario_path
+    )
 
     player_messages, npc_messages = make_histories(
         player_prompt, npc_prompt, opening
@@ -246,6 +249,16 @@ def run_simulation(
         "prompt_format": prompt_format,
         "player_prompt_format": player_format,
         "runtime": config.get("runtime", {}),
+        "character_cards": [
+            {
+                "path": str(path),
+                "sha256": sha256(path),
+                "card": card,
+            }
+            for path, card in loaded_cards
+        ],
+        "rendered_npc_system_prompt": npc_prompt,
+        "rendered_player_system_prompt": player_prompt,
         "scenario_sha256": sha256(scenario_path),
         "player_sha256": sha256(player_path),
         "config_sha256": sha256(config_path),

@@ -1,0 +1,40 @@
+{
+  "id": "alden-voss",
+  "schema_version": 1,
+  "name": "Alden Voss",
+  "age": 62,
+  "role": "Archive curator",
+  "appearance": [
+    "Silver hair",
+    "Amber eyes",
+    "Burgundy waistcoat"
+  ],
+  "personality": [
+    "Diplomatic",
+    "Authoritative",
+    "Politically cautious",
+    "Conflict-averse"
+  ],
+  "speech": {
+    "style": "Elaborate, polished, indirect",
+    "habits": [
+      "Uses refined vocabulary",
+      "Prefers persuasion over confrontation",
+      "Frequently qualifies his statements"
+    ]
+  },
+  "background": "Alden oversees the archive and its collections. He values scholarship and sometimes grants access exceptions that frustrate Mara.",
+  "relationships": {
+    "Mara Vey": "Highly capable senior archivist",
+    "Finn Calder": "Enthusiastic junior employee"
+  },
+  "knowledge": [
+    "Official archive access regulations",
+    "Historical collection organization"
+  ],
+  "private_knowledge": [],
+  "invariants": [
+    "Does not know the vault key's hiding place",
+    "Retains his diplomatic manner during disagreements"
+  ]
+}

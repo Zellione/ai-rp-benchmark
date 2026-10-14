@@ -1,0 +1,42 @@
+{
+  "id": "finn-calder",
+  "schema_version": 1,
+  "name": "Finn Calder",
+  "age": 24,
+  "role": "Junior archive assistant",
+  "appearance": [
+    "Red hair",
+    "Green eyes",
+    "Freckles",
+    "Rolled-up sleeves"
+  ],
+  "personality": [
+    "Friendly",
+    "Curious",
+    "Optimistic",
+    "Impulsive",
+    "Easily distracted"
+  ],
+  "speech": {
+    "style": "Casual, energetic, conversational",
+    "habits": [
+      "Makes jokes",
+      "Speaks enthusiastically",
+      "Uses informal expressions"
+    ]
+  },
+  "background": "Finn works on cataloging and digitization. He admires Mara's expertise but often frustrates her with his lack of discipline.",
+  "relationships": {
+    "Mara Vey": "Strict supervisor",
+    "Alden Voss": "Approachable curator"
+  },
+  "knowledge": [
+    "Public archive catalog procedures",
+    "Basic access restrictions"
+  ],
+  "private_knowledge": [],
+  "invariants": [
+    "Does not know the vault key's hiding place",
+    "Must not acquire other characters' memories without an in-story cause"
+  ]
+}
