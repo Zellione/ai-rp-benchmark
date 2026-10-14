@@ -10,45 +10,13 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from .core import load
+from .observations import read_observations, source_path
 
-EVALUATOR_VERSION = "deterministic-secrets-v1"
+EVALUATOR_VERSION = "deterministic-secrets-v2"
 
 
 def file_hash(path):
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
-
-
-def read_observations(run_dir):
-    path = Path(run_dir) / "observations.jsonl"
-    if not path.is_file():
-        raise ValueError(f"Missing observations: {path}")
-
-    entries = []
-    for line_number, line in enumerate(
-        path.read_text(encoding="utf-8").splitlines(), 1
-    ):
-        if not line.strip():
-            continue
-        try:
-            item = json.loads(line)
-        except json.JSONDecodeError as exc:
-            raise ValueError(
-                f"Invalid observations JSONL line {line_number}"
-            ) from exc
-
-        if not isinstance(item, dict):
-            raise ValueError("Observation must be an object")
-        if (
-            type(item.get("turn")) is not int
-            or item["turn"] < 1
-            or item.get("role") not in {"npc", "player"}
-            or not isinstance(item.get("text"), str)
-        ):
-            raise ValueError(
-                f"Invalid observation at line {line_number}"
-            )
-        entries.append(item)
-    return entries
 
 
 def validate_spec(spec):
@@ -176,11 +144,12 @@ def evaluate_run(run_dir, spec_path):
     validate_spec(spec)
 
     entries = read_observations(run_dir)
-    obs_path = run_dir / "observations.jsonl"
+    obs_path = source_path(run_dir)
     manifest_path = run_dir / "manifest.json"
 
     inputs = {
-        "observations_sha256": file_hash(obs_path),
+        "observation_source": obs_path.name,
+        "observation_source_sha256": file_hash(obs_path),
         "manifest_sha256": file_hash(manifest_path),
         "spec_sha256": file_hash(spec_path),
     }
@@ -287,7 +256,10 @@ def main():
             p for p in parent.iterdir()
             if p.is_dir()
             and (p / "manifest.json").is_file()
-            and (p / "observations.jsonl").is_file()
+            and (
+                (p / "observations.jsonl").is_file()
+                or (p / "events.jsonl").is_file()
+            )
         )
 
     failures = 0
