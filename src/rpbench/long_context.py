@@ -113,3 +113,79 @@ def select_context(
             "retrieval_is_exhaustive": covered == total,
         },
     }
+
+
+def fit_payload_budget(job, make_payload, config, max_bytes):
+    """Fit selected history into an exact serialized request byte budget.
+
+    Never truncate the target turn, secret, or system instructions.
+    Return a derived job; do not mutate the caller's original job.
+    """
+    import copy
+    import json
+
+    if type(max_bytes) is not int or max_bytes < 1:
+        raise ValueError("max_bytes must be a positive integer")
+
+    selected = copy.deepcopy(job)
+    context = selected["context_selection"]
+    recent = context["recent_context"]
+    older = context["retrieved_older_evidence"]
+
+    original_turns = sorted(
+        item["turn"] for item in recent + older
+    )
+    removed = []
+
+    def payload_size():
+        payload = make_payload(selected, config)
+        return len(
+            json.dumps(
+                payload, ensure_ascii=False
+            ).encode("utf-8")
+        )
+
+    initial_bytes = payload_size()
+
+    while payload_size() > max_bytes:
+        if older:
+            # Older evidence was initially ranked by relevance.
+            # The selection is chronological at this stage;
+            # discard its earliest turn as a deterministic fallback.
+            removed.append(older.pop(0)["turn"])
+        elif recent:
+            removed.append(recent.pop(0)["turn"])
+        else:
+            raise ValueError(
+                "Target turn, secret, and instructions exceed "
+                "the request byte budget"
+            )
+
+    covered = len(recent) + len(older)
+    coverage = context["coverage"]
+    coverage["included_prior_turns"] = covered
+    coverage["omitted_prior_turns"] = (
+        coverage["total_prior_turns"] - covered
+    )
+    coverage["history_complete"] = (
+        coverage["omitted_prior_turns"] == 0
+    )
+    coverage["retrieval_is_exhaustive"] = (
+        coverage["omitted_prior_turns"] == 0
+    )
+
+    final_bytes = payload_size()
+    context["budget_audit"] = {
+        "unit": "serialized_utf8_bytes",
+        "max_bytes": max_bytes,
+        "initial_bytes": initial_bytes,
+        "final_bytes": final_bytes,
+        "removed_turns": sorted(removed),
+        "retained_turns": sorted(
+            item["turn"] for item in recent + older
+        ),
+        "initial_selected_turns": original_turns,
+        "token_count_verified": False,
+    }
+
+    return selected

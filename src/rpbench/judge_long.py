@@ -13,7 +13,7 @@ from .evaluate import validate_spec
 from .judge import request_chat
 from .judge_validation_v2 import CATEGORIES, SYSTEM
 from .observations import read_observations, source_path
-from .long_context import select_context, validate_settings, VERSION as RETRIEVER_VERSION
+from .long_context import select_context, validate_settings, fit_payload_budget, VERSION as RETRIEVER_VERSION
 
 
 VERSION = "semantic-secrets-long-v1"
@@ -176,6 +176,7 @@ def parse_response(response, job):
 def evaluate(
     run_dir, spec_path, config_path, max_jobs=None,
     window_turns=12, evidence_turns=8,
+    max_prompt_bytes=None,
 ):
     run_dir = Path(run_dir).resolve()
     spec_path = Path(spec_path).resolve()
@@ -199,6 +200,12 @@ def evaluate(
         raise ValueError("max_jobs must be a positive integer")
 
     validate_settings(window_turns, evidence_turns)
+    if max_prompt_bytes is not None and (
+        type(max_prompt_bytes) is not int
+        or max_prompt_bytes < 1
+    ):
+        raise ValueError('Invalid max_prompt_bytes')
+
     entries = read_observations(run_dir)
     jobs = list(make_jobs(
         entries, spec, window_turns, evidence_turns
@@ -209,6 +216,7 @@ def evaluate(
         "implementation": RETRIEVER_VERSION,
         "window_turns": window_turns,
         "evidence_turns": evidence_turns,
+        "max_prompt_bytes": max_prompt_bytes,
         "prompt_sha256": digest(SYSTEM),
         "source_sha256": hash_file(source_path(run_dir)),
         "manifest_sha256": hash_file(
@@ -277,6 +285,11 @@ def evaluate(
 
     for job in pending:
         key = (job["turn"], job["secret_id"])
+        if max_prompt_bytes is not None:
+            job = fit_payload_budget(
+                job, make_payload, config,
+                max_prompt_bytes,
+            )
         payload = make_payload(job, config)
 
         append(journal, {
@@ -284,6 +297,7 @@ def evaluate(
             "turn": job["turn"],
             "secret_id": job["secret_id"],
             "payload": payload,
+            "context_selection": job["context_selection"],
         })
 
         try:
@@ -373,6 +387,7 @@ def evaluate(
             "retriever": RETRIEVER_VERSION,
             "window_turns": window_turns,
             "evidence_turns": evidence_turns,
+            "max_prompt_bytes": max_prompt_bytes,
         },
     }
     dump(root / "summary.json", summary)
@@ -393,6 +408,7 @@ def main():
     )
     parser.add_argument("--window-turns", type=int, default=12)
     parser.add_argument("--evidence-turns", type=int, default=8)
+    parser.add_argument("--max-prompt-bytes", type=int)
     args = parser.parse_args()
 
     root, summary = evaluate(
@@ -402,6 +418,7 @@ def main():
         max_jobs=args.max_jobs,
         window_turns=args.window_turns,
         evidence_turns=args.evidence_turns,
+        max_prompt_bytes=args.max_prompt_bytes,
     )
     print(root)
     print(json.dumps(summary, indent=2))
