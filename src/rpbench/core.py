@@ -64,7 +64,15 @@ class Backend:
         if self.mode == "chat":
             if self.name == "koboldcpp-native":
                 raise ValueError("koboldcpp-native supports only completion mode")
-            return root + "/v1/chat/completions", {"model": self.model, "messages": messages, "stream": False, **sampling}
+            payload = {
+                "model": self.model,
+                "messages": messages,
+                "stream": False,
+                **sampling,
+            }
+            if self.name == "vllm" and "chat_template_kwargs" in prompt_format:
+                payload["chat_template_kwargs"] = prompt_format["chat_template_kwargs"]
+            return root + "/v1/chat/completions", payload
         if self.mode != "completion":
             raise ValueError(f"Unsupported mode: {self.mode}")
         prompt = raw_prompt(messages, prompt_format)
@@ -90,7 +98,7 @@ class Backend:
         elif self.name == "llamacpp-native":
             answer = obj["content"]
         elif self.mode == "chat":
-            answer = obj["choices"][0]["message"]["content"]
+            answer = obj["choices"][0]["message"].get("content") or ""
         else:
             answer = obj["choices"][0]["text"]
         if not isinstance(answer, str):
@@ -148,8 +156,32 @@ def run(scenario_path: str, config_path: str, output: str) -> Path:
                 append(run_dir / "events.jsonl", {"type": "error", "turn": idx, "error": repr(error)})
                 raise
             elapsed = time.perf_counter() - started
-            append(run_dir / "events.jsonl", {"type": "response", "turn": idx,
-                "text": answer, "elapsed_seconds": elapsed, "raw_response": response})
+            choice = (response.get("choices") or [{}])[0]
+            message = choice.get("message") or {}
+            reasoning = message.get("reasoning")
+            finish_reason = choice.get("finish_reason")
+            response_status = (
+                "reasoning_only" if not answer.strip() and reasoning
+                else "empty_response" if not answer.strip()
+                else "truncated" if finish_reason == "length"
+                else "complete"
+            )
+            append(run_dir / "events.jsonl", {
+                "type": "response",
+                "turn": idx,
+                "text": answer,
+                "reasoning": reasoning,
+                "response_status": response_status,
+                "finish_reason": finish_reason,
+                "usage": response.get("usage"),
+                "elapsed_seconds": elapsed,
+                "raw_response": response,
+            })
+            if response_status in {"reasoning_only", "empty_response"}:
+                raise ValueError(
+                    f"Turn {idx}: no visible assistant response "
+                    f"({response_status}); raw response archived"
+                )
             with markdown.open("a", encoding="utf-8") as f:
                 f.write(f"## Turn {idx}\n\n### User\n\n{user_text}\n\n### Assistant\n\n{answer}\n\n")
                 f.flush()

@@ -1,0 +1,29 @@
+{
+  "backend": {
+    "name": "vllm",
+    "base_url": "http://127.0.0.1:8001",
+    "model": "/data/models/AEON-7/Gemma-4-31B-it-DECKARD-HERETIC-Uncensored-NVFP4",
+    "mode": "chat",
+    "timeout": 300
+  },
+  "sampling": {
+    "temperature": 0.8,
+    "top_p": 0.95,
+    "top_k": 40,
+    "min_p": 0.05,
+    "max_tokens": 1024
+  },
+  "prompt_format": {
+    "chat_template_kwargs": {
+      "enable_thinking": false
+    }
+  },
+  "runtime": {
+    "vllm_version": "0.29.0",
+    "kv_cache_dtype": "fp8_e4m3",
+    "max_model_len": 32768,
+    "gpu_memory_utilization": 0.80,
+    "chat_template": "chat_template-instruct.jinja",
+    "modelopt_patch_sha256": "1359264c4fcda3ad50e1c03957b7a348d314d1516ad38ef72eadfe8e82964724"
+  }
+}

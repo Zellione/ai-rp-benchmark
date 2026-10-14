@@ -12,6 +12,11 @@ LLAMA = frozenset({
     "mirostat", "mirostat_tau", "mirostat_eta", "dynatemp_range",
     "dynatemp_exponent", "n_keep", "cache_prompt",
 })
+VLLM = frozenset({
+    "top_k", "min_p", "repetition_penalty",
+    "length_penalty", "ignore_eos",
+})
+
 KOBOLD = frozenset({
     "top_k", "min_p", "typical", "typical_p", "rep_pen", "rep_pen_range",
     "rep_pen_slope", "sampler_order", "sampler_seed", "tfs", "top_a",
@@ -25,6 +30,8 @@ def validate_sampling(name: str, mode: str, sampling: dict) -> None:
         raise ValueError("sampling must be a JSON object")
     if name == "mock":
         allowed = COMMON | LLAMA | KOBOLD
+    elif name == "vllm" and mode in {"chat", "completion"}:
+        allowed = COMMON | VLLM
     elif name == "llamacpp-native" and mode == "completion":
         allowed = COMMON | LLAMA
     elif name == "koboldcpp-native" and mode == "completion":
