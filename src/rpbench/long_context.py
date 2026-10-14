@@ -5,7 +5,7 @@ from __future__ import annotations
 import re
 
 
-VERSION = "lexical-retrieval-v1"
+VERSION = "lexical-retrieval-v2"
 
 
 def tokens(text):
@@ -149,10 +149,22 @@ def fit_payload_budget(job, make_payload, config, max_bytes):
 
     while payload_size() > max_bytes:
         if older:
-            # Older evidence was initially ranked by relevance.
-            # The selection is chronological at this stage;
-            # discard its earliest turn as a deterministic fallback.
-            removed.append(older.pop(0)["turn"])
+            query = relevance_terms(selected["secret"])
+
+            def evidence_rank(item):
+                score = (
+                    len(query & tokens(item["player"]))
+                    + 2 * len(query & tokens(item["npc"]))
+                )
+                # Lower score is discarded first.
+                # For equal scores, older evidence goes first.
+                return (score, item["turn"])
+
+            weakest = min(
+                range(len(older)),
+                key=lambda index: evidence_rank(older[index]),
+            )
+            removed.append(older.pop(weakest)["turn"])
         elif recent:
             removed.append(recent.pop(0)["turn"])
         else:

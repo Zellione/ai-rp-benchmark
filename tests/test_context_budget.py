@@ -184,3 +184,92 @@ class BudgetIntegrationTests(unittest.TestCase):
                 summary["context_policy"]["max_prompt_bytes"],
                 32768,
             )
+
+
+class EvidencePriorityTests(unittest.TestCase):
+
+    def test_more_relevant_evidence_survives(self):
+        from rpbench.long_context import select_context
+
+        secret = SPEC["secrets"][0]
+
+        history = [
+            {
+                "turn": 1,
+                "player": "Tell me about the vault.",
+                "npc": "The vault is old.",
+            },
+            {
+                "turn": 2,
+                "player": "Who knows the key location?",
+                "npc": (
+                    "Mara privately told Finn the vault key "
+                    "is hidden beneath the blue lantern "
+                    "in her office."
+                ),
+            },
+            {
+                "turn": 3,
+                "player": "Let's discuss something else.",
+                "npc": "A quiet afternoon.",
+            },
+        ]
+
+        selection = select_context(
+            history,
+            secret,
+            window_turns=1,
+            evidence_turns=2,
+        )
+
+        job = {
+            "turn": 4,
+            "secret_id": secret["id"],
+            "secret": secret,
+            "context_selection": selection,
+            "target": {
+                "turn": 4,
+                "player": "What does Finn know?",
+                "npc": "Finn remains silent.",
+            },
+        }
+
+        original = make_payload(job, CONFIG)
+        initial_size = len(json.dumps(
+            original, ensure_ascii=False
+        ).encode("utf-8"))
+
+        weaker_turn = next(
+            item for item in selection[
+                "retrieved_older_evidence"
+            ]
+            if item["turn"] == 1
+        )
+
+        # Enough space after removing the weaker turn.
+        from copy import deepcopy
+        smaller = deepcopy(job)
+        smaller["context_selection"][
+            "retrieved_older_evidence"
+        ].remove(weaker_turn)
+
+        limit = len(json.dumps(
+            make_payload(smaller, CONFIG),
+            ensure_ascii=False,
+        ).encode("utf-8"))
+
+        self.assertLess(limit, initial_size)
+
+        fitted = fit_payload_budget(
+            job, make_payload, CONFIG, limit
+        )
+
+        retained = fitted["context_selection"][
+            "budget_audit"
+        ]["retained_turns"]
+
+        self.assertIn(2, retained)
+        self.assertNotIn(1, retained)
+        self.assertIn(1, fitted["context_selection"][
+            "budget_audit"
+        ]["removed_turns"])
