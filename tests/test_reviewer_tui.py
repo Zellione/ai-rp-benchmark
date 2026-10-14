@@ -63,5 +63,18 @@ class ReviewerTUITests(unittest.TestCase):
         )
 
 
+    def test_initial_review_state(self):
+        reviewer = Reviewer(self.run_dir, "test-reviewer")
+        self.assertIsNone(reviewer.selected_quote)
+        self.assertFalse(reviewer.review_view)
+        self.assertEqual(reviewer.review_index, 0)
+
+    def test_evidence_selection_resets_on_turn_change(self):
+        reviewer = Reviewer(self.run_dir, "test-reviewer")
+        reviewer.selected_quote = "Selected evidence"
+        reviewer.move(1)
+        self.assertIsNone(reviewer.selected_quote)
+
+
 if __name__ == "__main__":
     unittest.main()

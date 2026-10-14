@@ -135,6 +135,9 @@ class Reviewer:
         self.role = "npc"
         self.reasoning = False
         self.message = "Ready"
+        self.selected_quote = None
+        self.review_view = False
+        self.review_index = 0
         self.events = read_events(run_dir)
 
     def current_turn(self):
@@ -151,6 +154,55 @@ class Reviewer:
             min(len(self.turn_ids) - 1, self.position + delta)
         )
         self.scroll = 0
+        self.selected_quote = None
+
+    def select_evidence(self, stdscr):
+        observation = self.current_observation()
+        if observation is None:
+            self.message = "No observation for this role"
+            return
+        candidates = [
+            line.strip()
+            for line in observation["text"].splitlines()
+            if line.strip()
+        ]
+        if not candidates:
+            self.message = "No text to select"
+            return
+        index = 0
+        offset = 0
+        while True:
+            stdscr.erase()
+            height, width = stdscr.getmaxyx()
+            if height < 8 or width < 45:
+                return
+            stdscr.addnstr(0, 0,
+                "Select evidence: Up/Down, Enter, Esc",
+                width - 1, curses.A_REVERSE)
+            window = height - 3
+            offset = min(offset, index)
+            if index >= offset + window:
+                offset = index - window + 1
+            for row, line in enumerate(
+                candidates[offset:offset + window], 1
+            ):
+                actual = offset + row - 1
+                attr = (curses.A_REVERSE
+                        if actual == index else curses.A_NORMAL)
+                stdscr.addnstr(row, 0, line, width - 1, attr)
+            stdscr.refresh()
+            key = stdscr.getch()
+            if key == curses.KEY_UP:
+                index = max(0, index - 1)
+            elif key == curses.KEY_DOWN:
+                index = min(len(candidates) - 1, index + 1)
+            elif key in (10, 13, curses.KEY_ENTER):
+                self.selected_quote = candidates[index]
+                self.message = "Evidence selected; press p to propose"
+                return
+            elif key in (27, ord("q")):
+                self.message = "Evidence selection cancelled"
+                return
 
     def make_proposal(self, stdscr):
         observation = self.current_observation()
@@ -171,7 +223,7 @@ class Reviewer:
             self.message = "Unknown proposal type"
             return
 
-        quote = prompt_input(
+        quote = self.selected_quote or prompt_input(
             stdscr, "Exact evidence quote"
         )
         rationale = prompt_input(
@@ -204,8 +256,11 @@ class Reviewer:
             payload,
         )
         self.message = f"Created proposal #{item['id']}"
+        self.selected_quote = None
 
     def show_proposals(self, stdscr):
+        self.review_view = not self.review_view
+        self.review_index = 0
         items = proposals(self.run_dir)
         completed = {
             d["proposal_id"]: d
@@ -278,6 +333,38 @@ class Reviewer:
             curses.A_REVERSE,
         )
 
+        if self.review_view:
+            items = proposals(self.run_dir)
+            decided = {d["proposal_id"]: d
+                       for d in decisions(self.run_dir)}
+            view_height = height - 5
+            if items:
+                self.review_index = min(
+                    self.review_index, len(items) - 1)
+                offset = max(0, self.review_index - view_height + 1)
+                for row, item in enumerate(
+                    items[offset:offset + view_height], 1
+                ):
+                    status = decided.get(item["id"], {}).get(
+                        "decision", "pending")
+                    line = (f"#{item['id']} Turn {item['turn']} "
+                            f"{item['role']} {item['type']} [{status}] "
+                            f"{item['quote']}")
+                    attr = (curses.A_REVERSE if
+                        offset + row - 1 == self.review_index
+                        else curses.A_NORMAL)
+                    stdscr.addnstr(row, 0, line, width - 1, attr)
+            else:
+                stdscr.addnstr(1, 0, "No proposals", width - 1)
+            stdscr.addnstr(height - 3, 0,
+                "Up/Down: select | Enter: jump | v: close", width - 1)
+            stdscr.addnstr(height - 2, 0,
+                "a: accept | x: reject | q: quit", width - 1)
+            stdscr.addnstr(height - 1, 0, self.message,
+                width - 1, curses.A_BOLD)
+            stdscr.refresh()
+            return
+
         content = build_display(
             turn,
             self.turns[turn],
@@ -295,9 +382,12 @@ class Reviewer:
             self.scroll:self.scroll + view_height
         ]
         for index, line in enumerate(visible, 1):
-            stdscr.addnstr(
-                index, 0, line, width - 1
-            )
+            attr = curses.A_NORMAL
+            if line == f"=== {self.role.upper()} ===":
+                attr = curses.A_REVERSE | curses.A_BOLD
+            elif line.startswith("=== ") and line.endswith(" ==="):
+                attr = curses.A_BOLD
+            stdscr.addnstr(index, 0, line, width - 1, attr)
 
         stdscr.addnstr(
             height - 4, 0,
@@ -313,7 +403,7 @@ class Reviewer:
         )
         stdscr.addnstr(
             height - 2, 0,
-            "p: propose | v: proposals | "
+            "s: select | p: propose | v: proposals | "
             "a: accept | x: reject | q: quit",
             width - 1,
         )
@@ -341,9 +431,17 @@ class Reviewer:
                 elif key == curses.KEY_LEFT:
                     self.move(-1)
                 elif key == curses.KEY_UP:
-                    self.scroll = max(0, self.scroll - 1)
+                    if self.review_view:
+                        self.review_index = max(0, self.review_index - 1)
+                    else:
+                        self.scroll = max(0, self.scroll - 1)
                 elif key == curses.KEY_DOWN:
-                    self.scroll += 1
+                    if self.review_view:
+                        self.review_index = min(
+                            max(0, len(proposals(self.run_dir)) - 1),
+                            self.review_index + 1)
+                    else:
+                        self.scroll += 1
                 elif key == curses.KEY_NPAGE:
                     self.scroll += max(
                         1, stdscr.getmaxyx()[0] - 6
@@ -354,11 +452,22 @@ class Reviewer:
                         self.scroll -
                         max(1, stdscr.getmaxyx()[0] - 6),
                     )
+                elif key in (10, 13, curses.KEY_ENTER) and self.review_view:
+                    items = proposals(self.run_dir)
+                    if items:
+                        target = items[self.review_index]
+                        self.position = self.turn_ids.index(target["turn"])
+                        self.role = target["role"]
+                        self.scroll = 0
+                        self.review_view = False
+                elif key == ord("s") and not self.review_view:
+                    self.select_evidence(stdscr)
                 elif key == 9:
                     self.role = (
                         "player" if self.role == "npc"
                         else "npc"
                     )
+                    self.selected_quote = None
                 elif key == ord("r"):
                     self.reasoning = not self.reasoning
                     self.scroll = 0
