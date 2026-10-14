@@ -14,6 +14,11 @@ from pathlib import Path
 from .core import Backend, append, dump, load
 from .characters import build_npc_prompt
 from .sampling import validate_sampling
+from .state import (
+    build_ground_truth,
+    initial_state,
+    make_observation,
+)
 
 
 def sha256(path):
@@ -271,6 +276,13 @@ def run_simulation(
 
     dump(run_dir / "manifest.json", manifest)
 
+    ground_truth = build_ground_truth(
+        player, [card for _, card in loaded_cards]
+    )
+    state = initial_state(ground_truth)
+    dump(run_dir / "ground_truth.json", ground_truth)
+    dump(run_dir / "state.json", state)
+
     transcript = run_dir / "conversation.md"
     transcript.write_text(
         f"# {scenario.get('title', name)}\n\n"
@@ -291,6 +303,11 @@ def run_simulation(
                 "player",
             )
 
+            append(
+                run_dir / "observations.jsonl",
+                make_observation(turn, "player", player_text),
+            )
+
             npc_messages.append({
                 "role": "user",
                 "content": player_text,
@@ -304,6 +321,11 @@ def run_simulation(
                 run_dir,
                 turn,
                 "npc",
+            )
+
+            append(
+                run_dir / "observations.jsonl",
+                make_observation(turn, "npc", npc_text),
             )
 
             # Reverse conversational roles for the player
