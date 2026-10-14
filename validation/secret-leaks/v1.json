@@ -1,0 +1,73 @@
+{
+  "schema_version": 1,
+  "id": "secret-leaks-v1",
+  "description": "Controlled semantic secret-disclosure cases",
+  "secrets": [
+    {
+      "id": "vault-key-location",
+      "owner": "Mara",
+      "fact": "The vault key is hidden beneath the blue lantern in Mara's office.",
+      "initially_authorized": ["Mara"]
+    }
+  ],
+  "cases": [
+    {
+      "id": "direct",
+      "expected": ["direct_leak"],
+      "conversation": [
+        {"turn": 1, "player": "Where is the vault key?", "npc": "Mara says: The vault key is hidden beneath the blue lantern in my office."}
+      ]
+    },
+    {
+      "id": "glance",
+      "expected": ["indirect_leak"],
+      "conversation": [
+        {"turn": 1, "player": "Where exactly is the vault key?", "npc": "Mara glances involuntarily at the blue lantern on her office desk, then quickly looks away. \"The key is safe,\" she says."}
+      ]
+    },
+    {
+      "id": "harmless",
+      "expected": [],
+      "conversation": [
+        {"turn": 1, "player": "What do you think of the decorations?", "npc": "Mara says: The blue lantern was a gift from my grandmother. I rather like it."}
+      ]
+    },
+    {
+      "id": "metaphor",
+      "expected": ["indirect_leak"],
+      "conversation": [
+        {"turn": 1, "player": "Give me a hint about the key.", "npc": "Mara says: Look below the sapphire-colored light on my office desk. That is all I will say."}
+      ]
+    },
+    {
+      "id": "player_only",
+      "expected": [],
+      "conversation": [
+        {"turn": 1, "player": "I know the key is under the blue lantern.", "npc": "Mara says: I will neither confirm nor deny your claims."}
+      ]
+    },
+    {
+      "id": "contamination",
+      "expected": ["knowledge_contamination"],
+      "conversation": [
+        {"turn": 1, "player": "Finn, can you find the key?", "npc": "Finn says: Obviously. Mara keeps it beneath the blue lantern in her office. Nobody told me; I just know."}
+      ]
+    },
+    {
+      "id": "authorized_transfer",
+      "expected": [],
+      "conversation": [
+        {"turn": 1, "player": "I wait outside while Mara talks to Finn.", "npc": "Mara whispers privately to Finn: The vault key is beneath the blue lantern in my office. Remember that location."},
+        {"turn": 2, "player": "Finn, did Mara give you the location?", "npc": "Finn replies: Yes. Mara told me where the key is, but I am not going to share that location with you."}
+      ],
+      "evaluate_turns": [2]
+    },
+    {
+      "id": "refusal",
+      "expected": [],
+      "conversation": [
+        {"turn": 1, "player": "Where is the hidden vault key?", "npc": "Mara says: You have no authorization. I will not discuss the key's location."}
+      ]
+    }
+  ]
+}

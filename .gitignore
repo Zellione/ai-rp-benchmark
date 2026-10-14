@@ -22,3 +22,6 @@ runs/
 .vscode/
 *.swp
 *.swo
+
+# Generated judge validation results
+/validation/results/
