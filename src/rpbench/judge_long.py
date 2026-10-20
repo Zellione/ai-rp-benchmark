@@ -13,7 +13,7 @@ from .evaluate import validate_spec
 from .judge import request_chat
 from .judge_validation_v2 import CATEGORIES, SYSTEM
 from .observations import read_observations, source_path
-from .long_context import select_context, validate_settings, fit_payload_budget, VERSION as RETRIEVER_VERSION
+from .long_context import select_context, validate_settings, fit_payload_budget, fit_token_budget, VERSION as RETRIEVER_VERSION
 
 
 VERSION = "semantic-secrets-long-v1"
@@ -177,6 +177,7 @@ def evaluate(
     run_dir, spec_path, config_path, max_jobs=None,
     window_turns=12, evidence_turns=8,
     max_prompt_bytes=None,
+    max_prompt_tokens=None, context_limit=None,
 ):
     run_dir = Path(run_dir).resolve()
     spec_path = Path(spec_path).resolve()
@@ -206,6 +207,21 @@ def evaluate(
     ):
         raise ValueError('Invalid max_prompt_bytes')
 
+    if max_prompt_tokens is not None and (
+        type(max_prompt_tokens) is not int or max_prompt_tokens < 1
+    ):
+        raise ValueError('Invalid max_prompt_tokens')
+    if context_limit is not None:
+        if type(context_limit) is not int or context_limit < 1:
+            raise ValueError('Invalid context_limit')
+        if max_prompt_tokens is None:
+            raise ValueError('Set max_prompt_tokens too')
+        reserve = config['sampling']['max_tokens']
+        if type(reserve) is not int or reserve < 1:
+            raise ValueError('Invalid completion reserve')
+        if max_prompt_tokens + reserve > context_limit:
+            raise ValueError('Prompt + output exceeds context')
+
     entries = read_observations(run_dir)
     jobs = list(make_jobs(
         entries, spec, window_turns, evidence_turns
@@ -217,6 +233,8 @@ def evaluate(
         "window_turns": window_turns,
         "evidence_turns": evidence_turns,
         "max_prompt_bytes": max_prompt_bytes,
+        "max_prompt_tokens": max_prompt_tokens,
+        "context_limit": context_limit,
         "prompt_sha256": digest(SYSTEM),
         "source_sha256": hash_file(source_path(run_dir)),
         "manifest_sha256": hash_file(
@@ -290,7 +308,22 @@ def evaluate(
                 job, make_payload, config,
                 max_prompt_bytes,
             )
+        if max_prompt_tokens is not None:
+            job = fit_token_budget(
+                job, make_payload, config, max_prompt_tokens
+            )
         payload = make_payload(job, config)
+
+        # Record the final request size after all budget reductions.
+        selection = job["context_selection"]
+        byte_audit = selection.get("budget_audit")
+        if byte_audit is not None:
+            final_bytes = len(json.dumps(
+                payload, ensure_ascii=False
+            ).encode("utf-8"))
+            if final_bytes > byte_audit["max_bytes"]:
+                raise ValueError("Final request exceeds byte budget")
+            byte_audit["final_bytes"] = final_bytes
 
         append(journal, {
             "type": "request",
@@ -308,6 +341,35 @@ def evaluate(
                 "secret_id": job["secret_id"],
                 "response": response,
             })
+
+            token_audit = job["context_selection"].get(
+                "token_budget_audit"
+            )
+            if token_audit is not None:
+                usage = response.get("usage") or {}
+                actual = usage.get("prompt_tokens")
+                expected = token_audit["final_prompt_tokens"]
+
+                if type(actual) is not int or actual < 0:
+                    raise ValueError(
+                        "Missing actual prompt token usage"
+                    )
+
+                append(journal, {
+                    "type": "token_count_verification",
+                    "turn": job["turn"],
+                    "secret_id": job["secret_id"],
+                    "preflight_tokens": expected,
+                    "actual_tokens": actual,
+                    "difference": actual - expected,
+                    "matches": actual == expected,
+                })
+
+                if actual != expected:
+                    raise ValueError(
+                        "Preflight and actual token counts differ: "
+                        f"{expected} != {actual}"
+                    )
 
             finding = parse_response(response, job)
             append(journal, {
@@ -388,6 +450,8 @@ def evaluate(
             "window_turns": window_turns,
             "evidence_turns": evidence_turns,
             "max_prompt_bytes": max_prompt_bytes,
+            "max_prompt_tokens": max_prompt_tokens,
+            "context_limit": context_limit,
         },
     }
     dump(root / "summary.json", summary)
@@ -409,6 +473,8 @@ def main():
     parser.add_argument("--window-turns", type=int, default=12)
     parser.add_argument("--evidence-turns", type=int, default=8)
     parser.add_argument("--max-prompt-bytes", type=int)
+    parser.add_argument("--max-prompt-tokens", type=int)
+    parser.add_argument("--context-limit", type=int)
     args = parser.parse_args()
 
     root, summary = evaluate(
@@ -419,6 +485,8 @@ def main():
         window_turns=args.window_turns,
         evidence_turns=args.evidence_turns,
         max_prompt_bytes=args.max_prompt_bytes,
+        max_prompt_tokens=args.max_prompt_tokens,
+        context_limit=args.context_limit,
     )
     print(root)
     print(json.dumps(summary, indent=2))

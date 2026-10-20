@@ -201,3 +201,144 @@ def fit_payload_budget(job, make_payload, config, max_bytes):
     }
 
     return selected
+
+
+def count_ninfer_prompt_tokens(payload, config):
+    """Count the matching text-only prompt via ninfer Responses API."""
+    import json
+    import os
+    import urllib.request
+
+    messages = payload["messages"]
+    if (
+        len(messages) != 2
+        or messages[0]["role"] != "system"
+        or messages[1]["role"] != "user"
+        or any(not isinstance(m["content"], str) for m in messages)
+    ):
+        raise ValueError(
+            "Token counter requires system+user text messages"
+        )
+
+    body = {
+        "model": payload["model"],
+        "instructions": messages[0]["content"],
+        "input": messages[1]["content"],
+    }
+
+    backend = config["backend"]
+    url = (
+        backend["base_url"].rstrip("/")
+        + "/v1/responses/input_tokens"
+    )
+
+    headers = {"Content-Type": "application/json"}
+    key = os.getenv(
+        backend.get("api_key_env", "RPBENCH_JUDGE_API_KEY")
+    )
+    if key:
+        headers["Authorization"] = f"Bearer {key}"
+
+    request = urllib.request.Request(
+        url,
+        data=json.dumps(
+            body, ensure_ascii=False
+        ).encode("utf-8"),
+        headers=headers,
+        method="POST",
+    )
+
+    with urllib.request.urlopen(
+        request, timeout=backend.get("timeout", 600)
+    ) as response:
+        result = json.load(response)
+
+    count = result.get("input_tokens")
+    if type(count) is not int or count < 1:
+        raise ValueError("Invalid ninfer input token count")
+
+    return count
+
+
+def fit_token_budget(
+    job,
+    make_payload,
+    config,
+    max_prompt_tokens,
+    *,
+    counter=count_ninfer_prompt_tokens,
+):
+    """Constrain a derived job using server-side prompt token counts."""
+    from copy import deepcopy
+
+    if (
+        type(max_prompt_tokens) is not int
+        or max_prompt_tokens < 1
+    ):
+        raise ValueError("Invalid max_prompt_tokens")
+
+    selected = deepcopy(job)
+    context = selected["context_selection"]
+    recent = context["recent_context"]
+    older = context["retrieved_older_evidence"]
+
+    removed = []
+
+    def count():
+        return counter(make_payload(selected, config), config)
+
+    initial = count()
+    current = initial
+
+    while current > max_prompt_tokens:
+        if older:
+            query = relevance_terms(selected["secret"])
+
+            def rank(item):
+                return (
+                    len(query & tokens(item["player"]))
+                    + 2 * len(query & tokens(item["npc"])),
+                    item["turn"],
+                )
+
+            index = min(
+                range(len(older)),
+                key=lambda i: rank(older[i]),
+            )
+            removed.append(older.pop(index)["turn"])
+        elif recent:
+            removed.append(recent.pop(0)["turn"])
+        else:
+            raise ValueError(
+                "Target, secret and instructions exceed "
+                "the prompt token budget"
+            )
+
+        current = count()
+
+    coverage = context["coverage"]
+    covered = len(recent) + len(older)
+    coverage["included_prior_turns"] = covered
+    coverage["omitted_prior_turns"] = (
+        coverage["total_prior_turns"] - covered
+    )
+    coverage["history_complete"] = (
+        coverage["omitted_prior_turns"] == 0
+    )
+    coverage["retrieval_is_exhaustive"] = (
+        coverage["omitted_prior_turns"] == 0
+    )
+
+    context["token_budget_audit"] = {
+        "counter": "ninfer-responses-input-tokens",
+        "max_prompt_tokens": max_prompt_tokens,
+        "initial_prompt_tokens": initial,
+        "final_prompt_tokens": current,
+        "removed_turns": sorted(removed),
+        "retained_turns": sorted(
+            t["turn"] for t in recent + older
+        ),
+        "server_counted": True,
+    }
+
+    return selected
