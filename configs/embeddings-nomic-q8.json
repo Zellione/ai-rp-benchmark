@@ -1,0 +1,10 @@
+{
+  "id": "nomic-embed-text-v1.5-q8",
+  "backend": {
+    "protocol": "openai-embeddings",
+    "base_url": "http://127.0.0.1:8082",
+    "model": "nomic-embed-text-v1.5",
+    "timeout": 120
+  },
+  "batch_size": 32
+}

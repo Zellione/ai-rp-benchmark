@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+from functools import partial
 import json
 from pathlib import Path
 
@@ -16,6 +17,11 @@ from .retrieval_bm25 import (
     select_context as bm25,
 )
 from .retrieval_benchmark import stable_hash
+from .retrieval_dense import (
+    VERSION as DENSE_VERSION,
+    select_context as dense,
+)
+from .core import load
 from .retrieval_benchmark_v2 import (
     cases,
     evaluate_case,
@@ -23,7 +29,10 @@ from .retrieval_benchmark_v2 import (
 )
 
 
-def compare(output, window_turns=12, evidence_turns=8):
+def compare(
+    output, window_turns=12, evidence_turns=8,
+    embedding_config=None,
+):
     root = Path(output)
     root.mkdir(parents=True, exist_ok=False)
 
@@ -32,6 +41,14 @@ def compare(output, window_turns=12, evidence_turns=8):
         LEXICAL_VERSION: lexical,
         BM25_VERSION: bm25,
     }
+
+    if embedding_config is not None:
+        cfg = load(embedding_config)
+        systems[DENSE_VERSION] = partial(
+            dense,
+            config=cfg,
+            batch_size=cfg.get('batch_size', 32),
+        )
 
     all_results = {}
     summaries = {}
@@ -51,6 +68,8 @@ def compare(output, window_turns=12, evidence_turns=8):
         "benchmark": "retrieval-comparison-v1",
         "dataset_sha256": stable_hash(dataset),
         "retrievers": list(systems),
+        "embedding_config": str(embedding_config)
+        if embedding_config is not None else None,
         "window_turns": window_turns,
         "evidence_turns": evidence_turns,
     })
@@ -74,10 +93,12 @@ def main():
     parser.add_argument("--out", required=True)
     parser.add_argument("--window-turns", type=int, default=12)
     parser.add_argument("--evidence-turns", type=int, default=8)
+    parser.add_argument("--embedding-config")
     args = parser.parse_args()
 
     root, summary = compare(
-        args.out, args.window_turns, args.evidence_turns
+        args.out, args.window_turns, args.evidence_turns,
+        embedding_config=args.embedding_config,
     )
     print(root)
     print(json.dumps(summary, indent=2))
