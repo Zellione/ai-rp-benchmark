@@ -1,0 +1,137 @@
+{
+  "schema_version": 1,
+  "id": "attribution-gold-v1",
+  "characters": [
+    {"id": "mara-vey", "name": "Mara Vey"},
+    {"id": "finn-calder", "name": "Finn Calder"},
+    {"id": "elena", "name": "Elena"}
+  ],
+  "cases": [
+    {
+      "id": "explicit-mara-speech",
+      "text": "Mara says, \"The archive closes at nine.\"",
+      "events": [
+        {"quote": "\"The archive closes at nine.\"", "kind": "speech", "speaker_id": "mara-vey", "actor_id": null, "subject_id": null, "narrative_source": "direct_dialogue"}
+      ]
+    },
+    {
+      "id": "explicit-finn-speech",
+      "text": "\"I will check the records,\" Finn replies.",
+      "events": [
+        {"quote": "\"I will check the records,\"", "kind": "speech", "speaker_id": "finn-calder", "actor_id": null, "subject_id": null, "narrative_source": "direct_dialogue"}
+      ]
+    },
+    {
+      "id": "two-speakers",
+      "text": "Mara says, \"Stop.\" Finn answers, \"Why?\"",
+      "events": [
+        {"quote": "\"Stop.\"", "kind": "speech", "speaker_id": "mara-vey", "actor_id": null, "subject_id": null, "narrative_source": "direct_dialogue"},
+        {"quote": "\"Why?\"", "kind": "speech", "speaker_id": "finn-calder", "actor_id": null, "subject_id": null, "narrative_source": "direct_dialogue"}
+      ]
+    },
+    {
+      "id": "subject-not-speaker",
+      "text": "Mara says, \"Finn has the notebook.\"",
+      "events": [
+        {"quote": "\"Finn has the notebook.\"", "kind": "speech", "speaker_id": "mara-vey", "actor_id": null, "subject_id": "finn-calder", "narrative_source": "direct_dialogue"}
+      ]
+    },
+    {
+      "id": "named-action",
+      "text": "Finn opens the cabinet.",
+      "events": [
+        {"quote": "Finn opens the cabinet.", "kind": "action", "speaker_id": null, "actor_id": "finn-calder", "subject_id": null, "narrative_source": "narrator"}
+      ]
+    },
+    {
+      "id": "action-on-another",
+      "text": "Mara hands Finn a sealed envelope.",
+      "events": [
+        {"quote": "Mara hands Finn a sealed envelope.", "kind": "action", "speaker_id": null, "actor_id": "mara-vey", "subject_id": "finn-calder", "narrative_source": "narrator"}
+      ]
+    },
+    {
+      "id": "pronoun-action",
+      "text": "Finn approaches the door. He turns the handle.",
+      "events": [
+        {"quote": "He turns the handle.", "kind": "action", "speaker_id": null, "actor_id": "finn-calder", "subject_id": null, "narrative_source": "narrator"}
+      ]
+    },
+    {
+      "id": "ambiguous-pronoun",
+      "text": "Mara meets Elena outside. She looks toward the gate.",
+      "events": [
+        {"quote": "She looks toward the gate.", "kind": "action", "speaker_id": null, "actor_id": null, "subject_id": null, "narrative_source": "narrator"}
+      ]
+    },
+    {
+      "id": "ambiguous-first-person",
+      "text": "I step closer to the lantern.",
+      "events": [
+        {"quote": "I step closer to the lantern.", "kind": "action", "speaker_id": null, "actor_id": null, "subject_id": null, "narrative_source": "ambiguous"}
+      ]
+    },
+    {
+      "id": "third-person-narration",
+      "text": "The room falls silent as the rain begins.",
+      "events": [
+        {"quote": "The room falls silent as the rain begins.", "kind": "narration", "speaker_id": null, "actor_id": null, "subject_id": null, "narrative_source": "narrator"}
+      ]
+    },
+    {
+      "id": "described-emotion",
+      "text": "Finn's hands shake with nervous anticipation.",
+      "events": [
+        {"quote": "Finn's hands shake with nervous anticipation.", "kind": "action", "speaker_id": null, "actor_id": "finn-calder", "subject_id": null, "narrative_source": "narrator"}
+      ]
+    },
+    {
+      "id": "explicit-thought",
+      "text": "Mara thinks, \"Finn must never learn the truth.\"",
+      "events": [
+        {"quote": "\"Finn must never learn the truth.\"", "kind": "thought", "speaker_id": null, "actor_id": "mara-vey", "subject_id": "finn-calder", "narrative_source": "internal_thought"}
+      ]
+    },
+    {
+      "id": "knowledge-owner",
+      "text": "Finn says, \"Mara told me the vault code yesterday.\"",
+      "events": [
+        {"quote": "\"Mara told me the vault code yesterday.\"", "kind": "knowledge_claim", "speaker_id": "finn-calder", "actor_id": null, "subject_id": "mara-vey", "narrative_source": "direct_dialogue"}
+      ]
+    },
+    {
+      "id": "knowledge-from-narrator",
+      "text": "The narrator reveals that Mara knows the location of the key.",
+      "events": [
+        {"quote": "Mara knows the location of the key.", "kind": "knowledge_claim", "speaker_id": null, "actor_id": null, "subject_id": "mara-vey", "narrative_source": "narrator"}
+      ]
+    },
+    {
+      "id": "quoted-other-character",
+      "text": "Finn recalls Mara's words: \"Never open the vault.\"",
+      "events": [
+        {"quote": "\"Never open the vault.\"", "kind": "speech", "speaker_id": "mara-vey", "actor_id": null, "subject_id": null, "narrative_source": "reported_dialogue"}
+      ]
+    },
+    {
+      "id": "unattributed-dialogue",
+      "text": "\"You should leave now.\"",
+      "events": [
+        {"quote": "\"You should leave now.\"", "kind": "speech", "speaker_id": null, "actor_id": null, "subject_id": null, "narrative_source": "ambiguous"}
+      ]
+    },
+    {
+      "id": "no-event",
+      "text": "...",
+      "events": []
+    },
+    {
+      "id": "repeated-phrase",
+      "text": "Finn says, \"Wait.\" Mara answers, \"Wait.\"",
+      "events": [
+        {"quote": "\"Wait.\"", "occurrence": 0, "kind": "speech", "speaker_id": "finn-calder", "actor_id": null, "subject_id": null, "narrative_source": "direct_dialogue"},
+        {"quote": "\"Wait.\"", "occurrence": 1, "kind": "speech", "speaker_id": "mara-vey", "actor_id": null, "subject_id": null, "narrative_source": "direct_dialogue"}
+      ]
+    }
+  ]
+}
