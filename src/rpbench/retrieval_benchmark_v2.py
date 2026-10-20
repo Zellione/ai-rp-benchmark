@@ -116,8 +116,11 @@ def cases():
             yield make_case(length, kind)
 
 
-def evaluate_case(case, window_turns=12, evidence_turns=8):
-    selection = select_context(
+def evaluate_case(
+    case, window_turns=12, evidence_turns=8,
+    *, retriever=select_context,
+):
+    selection = retriever(
         case["history"],
         case["secret"],
         window_turns=window_turns,
