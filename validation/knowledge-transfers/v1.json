@@ -1,0 +1,85 @@
+{
+  "schema_version": 1,
+  "id": "knowledge-transfers-gold-v1",
+  "characters": [
+    {"id": "mara-vey", "name": "Mara Vey"},
+    {"id": "finn-calder", "name": "Finn Calder"},
+    {"id": "alden-voss", "name": "Alden Voss"}
+  ],
+  "cases": [
+    {
+      "id": "direct-secret",
+      "text": "Mara whispers to Finn, \"The vault key is beneath the blue lantern in my office.\"",
+      "expected": [
+        {"kind": "explicit_transfer", "source_character_id": "mara-vey", "recipient_character_id": "finn-calder", "fact": "The vault key is beneath the blue lantern in Mara's office.", "recipient_prior_knowledge": "unknown"}
+      ]
+    },
+    {
+      "id": "explicit-new-information",
+      "text": "Finn says, \"I never knew the vault code.\" Mara replies, \"It is 7319.\"",
+      "expected": [
+        {"kind": "explicit_transfer", "source_character_id": "mara-vey", "recipient_character_id": "finn-calder", "fact": "The vault code is 7319.", "recipient_prior_knowledge": "not_known"}
+      ]
+    },
+    {
+      "id": "already-known",
+      "text": "Finn says, \"I already know the vault code is 7319.\" Mara answers, \"Yes, it is 7319.\"",
+      "expected": [
+        {"kind": "explicit_transfer", "source_character_id": "mara-vey", "recipient_character_id": "finn-calder", "fact": "The vault code is 7319.", "recipient_prior_knowledge": "known"}
+      ]
+    },
+    {
+      "id": "reported-secret",
+      "text": "Finn tells Voss, \"Mara gave me the vault combination yesterday. It was 7319.\"",
+      "expected": [
+        {"kind": "explicit_transfer", "source_character_id": "finn-calder", "recipient_character_id": "alden-voss", "fact": "The vault combination is 7319.", "recipient_prior_knowledge": "unknown"},
+        {"kind": "reported_transfer", "source_character_id": "mara-vey", "recipient_character_id": "finn-calder", "fact": "The vault combination is 7319.", "recipient_prior_knowledge": "unknown"}
+      ]
+    },
+    {
+      "id": "reported-without-fact",
+      "text": "Finn says, \"Mara told me something confidential yesterday, but I will not repeat it.\"",
+      "expected": []
+    },
+    {
+      "id": "administrative-reminder",
+      "text": "Mara tells Finn, \"We cannot repeat last Tuesday's clerical errors. Please check the guest log.\"",
+      "expected": []
+    },
+    {
+      "id": "routine-greeting",
+      "text": "Finn smiles at Mara. \"Good morning. How are you?\"",
+      "expected": []
+    },
+    {
+      "id": "mere-co-presence",
+      "text": "Mara and Finn stand together by the vault door in silence.",
+      "expected": []
+    },
+    {
+      "id": "narrator-secret",
+      "text": "The narrator reveals that Mara keeps the key beneath the blue lantern, but nobody in the room says anything.",
+      "expected": []
+    },
+    {
+      "id": "unresolved-recipient",
+      "text": "Mara whispers, \"The vault combination is 7319,\" but the listener remains unidentified.",
+      "expected": [
+        {"kind": "explicit_transfer", "source_character_id": "mara-vey", "recipient_character_id": null, "fact": "The vault combination is 7319.", "recipient_prior_knowledge": "unknown"}
+      ]
+    },
+    {
+      "id": "false-rumor",
+      "text": "Voss says, \"People claim Mara told Finn the key's location, but I have no evidence that happened.\"",
+      "expected": []
+    },
+    {
+      "id": "multi-recipient",
+      "text": "Mara tells Finn and Voss, \"The sealed chamber opens only at midnight.\"",
+      "expected": [
+        {"kind": "explicit_transfer", "source_character_id": "mara-vey", "recipient_character_id": "finn-calder", "fact": "The sealed chamber opens only at midnight.", "recipient_prior_knowledge": "unknown"},
+        {"kind": "explicit_transfer", "source_character_id": "mara-vey", "recipient_character_id": "alden-voss", "fact": "The sealed chamber opens only at midnight.", "recipient_prior_knowledge": "unknown"}
+      ]
+    }
+  ]
+}

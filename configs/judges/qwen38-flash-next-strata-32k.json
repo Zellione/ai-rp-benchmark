@@ -1,0 +1,18 @@
+{
+  "id": "qwen38-flash-next-strata-32k",
+  "backend": {
+    "protocol": "openai-chat",
+    "base_url": "http://127.0.0.1:8080",
+    "model": "qwen3.8-flash-next-iq3_xxs",
+    "timeout": 600
+  },
+  "sampling": {
+    "temperature": 0.2,
+    "top_p": 0.95,
+    "max_tokens": 32768
+  },
+  "evaluation": {
+    "chunk_turns": 20,
+    "overlap_turns": 3
+  }
+}
