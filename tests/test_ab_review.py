@@ -1,0 +1,130 @@
+import json
+import tempfile
+import unittest
+from pathlib import Path
+
+from rpbench.ab_review import (
+    export_html,
+    prepare,
+    summarize,
+)
+
+
+class ABReviewTests(unittest.TestCase):
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        self.root = Path(self.tmp.name)
+
+    def run_fixture(self, name, answer, player="Hello"):
+        root = self.root / name
+        root.mkdir()
+
+        (root / "manifest.json").write_text(
+            json.dumps({
+                "type": "goal_driven_selfplay",
+                "status": "complete",
+                "completed_turns": 1,
+            }),
+            encoding="utf-8",
+        )
+
+        entries = [
+            {
+                "type": "dialogue_observation",
+                "turn": 1,
+                "role": "player",
+                "text": player,
+            },
+            {
+                "type": "dialogue_observation",
+                "turn": 1,
+                "role": "npc",
+                "text": answer,
+            },
+        ]
+
+        with (root / "observations.jsonl").open(
+            "w", encoding="utf-8"
+        ) as out:
+            for entry in entries:
+                out.write(json.dumps(entry) + "\n")
+
+        return root
+
+    def test_matching_runs(self):
+        a = self.run_fixture("run-a", "Good morning")
+        b = self.run_fixture("run-b", "Welcome back")
+        data = prepare(a, b)
+        self.assertEqual(len(data["turns"]), 1)
+        self.assertEqual(data["turns"][0]["player"], "Hello")
+        self.assertEqual(
+            {
+                data["turns"][0]["A"],
+                data["turns"][0]["B"],
+            },
+            {"Good morning", "Welcome back"},
+        )
+        self.assertEqual(
+            data["criteria"][0], "Character fidelity"
+        )
+
+    def test_deterministic_order(self):
+        a = self.run_fixture("run-a", "First")
+        b = self.run_fixture("run-b", "Second")
+        self.assertEqual(
+            prepare(a, b)["id"],
+            prepare(a, b)["id"],
+        )
+        self.assertEqual(
+            prepare(a, b)["mapping"],
+            prepare(a, b)["mapping"],
+        )
+
+    def test_mismatched_player_rejected(self):
+        a = self.run_fixture("run-a", "First")
+        b = self.run_fixture(
+            "run-b", "Second", player="Different"
+        )
+        with self.assertRaisesRegex(ValueError, "Player input"):
+            prepare(a, b)
+
+    def test_identical_runs_rejected(self):
+        a = self.run_fixture("run-a", "First")
+        with self.assertRaises(ValueError):
+            prepare(a, a)
+
+    def test_html_export(self):
+        a = self.run_fixture("run-a", "</script> text")
+        b = self.run_fixture("run-b", "Second")
+        output = self.root / "review.html"
+        export_html(prepare(a, b), output)
+        content = output.read_text(encoding="utf-8")
+        self.assertIn("RPBench", content)
+        self.assertNotIn("</script> text", content)
+        with self.assertRaises(FileExistsError):
+            export_html(prepare(a, b), output)
+
+    def test_report(self):
+        path = self.root / "results.json"
+        path.write_text(json.dumps({
+            "comparison_id": "test",
+            "mapping": {
+                "A": {"run": "model-a"},
+                "B": {"run": "model-b"},
+            },
+            "turn_votes": [
+                {"turn": 1, "vote": "A"},
+                {"turn": 2, "vote": "tie"},
+            ],
+            "overall_preference": "A",
+            "criteria": [],
+        }), encoding="utf-8")
+        result = summarize(path)
+        self.assertEqual(result["votes"]["A"], 1)
+        self.assertEqual(result["votes"]["tie"], 1)
+
+
+if __name__ == "__main__":
+    unittest.main()
