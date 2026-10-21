@@ -135,6 +135,14 @@ textarea {width:100%;box-sizing:border-box;min-height:85px}
 .rating {display:grid;grid-template-columns:1fr 95px 95px;
          gap:12px;margin:9px 0;align-items:center}
 small {color:#b1bdcf}
+.review-toolbar {display:flex;align-items:center;gap:12px;
+ flex-wrap:wrap;margin:18px 0}
+.review-toolbar label {display:flex;align-items:center;gap:8px}
+.review-toolbar input {max-width:95px;background:#222b38;
+ color:#e8edf5;border:1px solid #536174;border-radius:7px;
+ padding:9px;font:inherit}
+#review-progress {width:100%;height:12px;accent-color:#4386be}
+#storage-status {color:#b1bdcf;font-size:.85rem}
 @media(max-width:780px){
  .cards {grid-template-columns:1fr}
 }
@@ -146,8 +154,24 @@ small {color:#b1bdcf}
  <small id="progress"></small></div>
  <div><button id="prev">← Previous</button>
  <button id="next">Next →</button>
- <button id="export">Export JSON</button></div>
+ <button id="open-turn">Next unrated</button>
+ <button id="export">Export JSON</button>
+ <button id="import-button">Import JSON</button></div>
 </header>
+<div class="review-toolbar">
+ <label>Jump to turn
+ <input id="jump" type="number" min="1" step="1"></label>
+ <button id="jump-button">Go</button>
+ <label>Review status
+ <select id="review-status">
+ <option value="in_progress">In progress</option>
+ <option value="complete">Complete</option>
+ </select></label>
+ <span id="storage-status" role="status"></span>
+</div>
+<progress id="review-progress" value="0" max="1"></progress>
+<input id="import-file" type="file" accept=".json,application/json"
+ hidden>
 <section id="turn"></section>
 <h2>Overall impressions</h2>
 <p><small>Rate the complete conversations from 1 (poor)
@@ -202,80 +226,286 @@ function formatRP(text) {
  }
  return parts.join("");
 }
-function render(){
- const item = DATA.turns[index];
+const STORAGE_KEY = "rpbench-ab-v2:" + DATA.id;
+let reviewStatus = "in_progress";
+let storageAvailable = false;
+
+function snapshot() {
+ return {
+  schema_version: 2,
+  comparison_id: DATA.id,
+  mapping: DATA.mapping,
+  method: DATA.method,
+  status: reviewStatus,
+  current_turn: DATA.turns[index].turn,
+  turn_votes: DATA.turns.map(t => ({
+   turn: t.turn,
+   vote: votes[t.turn] || null,
+   note: notes[t.turn] || ""
+  })),
+  criteria: DATA.criteria.map((name, i) => ({
+   name,
+   A: ratings[i + ":A"] ?? null,
+   B: ratings[i + ":B"] ?? null
+  })),
+  overall_preference:
+   document.getElementById("overall").value || null,
+  final_notes:
+   document.getElementById("finalnotes").value
+ };
+}
+
+function save() {
+ const status = document.getElementById("storage-status");
+ try {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(snapshot()));
+  storageAvailable = true;
+  status.textContent = "Autosaved locally";
+ } catch (err) {
+  storageAvailable = false;
+  status.textContent =
+   "Browser autosave unavailable — export JSON regularly";
+ }
+ updateProgress();
+}
+
+function restore(data) {
+ if (!data || data.comparison_id !== DATA.id) {
+  throw new Error("Comparison ID does not match this review");
+ }
+ if (JSON.stringify(data.mapping) !==
+     JSON.stringify(DATA.mapping)) {
+  throw new Error("Run mapping / source hashes do not match");
+ }
+ if (!Array.isArray(data.turn_votes) ||
+     !Array.isArray(data.criteria)) {
+  throw new Error("Invalid review data");
+ }
+ const permitted = new Set(["A","B","tie","skip",null]);
+ const expected = new Set(DATA.turns.map(t => t.turn));
+ const restoredVotes = {};
+ const restoredNotes = {};
+ const restoredRatings = {};
+
+ if (data.turn_votes.length !== DATA.turns.length) {
+  throw new Error("Turn count mismatch");
+ }
+ for (const item of data.turn_votes) {
+  if (!expected.has(item.turn) ||
+      !permitted.has(item.vote ?? null) ||
+      Object.hasOwn(restoredVotes, item.turn)) {
+   throw new Error("Invalid or duplicate turn vote");
+  }
+  restoredVotes[item.turn] = item.vote ?? null;
+  restoredNotes[item.turn] =
+   typeof item.note === "string" ? item.note : "";
+ }
+ for (let i = 0; i < DATA.criteria.length; i++) {
+  const entry = data.criteria[i];
+  if (!entry || entry.name !== DATA.criteria[i]) {
+   throw new Error("Review criteria mismatch");
+  }
+  for (const side of ["A","B"]) {
+   const value = entry[side];
+   if (value != null &&
+       (!Number.isInteger(value) || value < 1 || value > 5)) {
+    throw new Error("Invalid criterion rating");
+   }
+   restoredRatings[i + ":" + side] = value ?? null;
+  }
+ }
+ const preference = data.overall_preference ?? "";
+ if (!["","A","B","tie"].includes(preference)) {
+  throw new Error("Invalid overall preference");
+ }
+ const nextStatus = data.status ?? "in_progress";
+ if (!["in_progress","complete"].includes(nextStatus)) {
+  throw new Error("Invalid review status");
+ }
+
+ // Apply only after all validation has succeeded.
+ for (const key of Object.keys(votes)) delete votes[key];
+ for (const key of Object.keys(notes)) delete notes[key];
+ for (const key of Object.keys(ratings)) delete ratings[key];
+ Object.assign(votes, restoredVotes);
+ Object.assign(notes, restoredNotes);
+ Object.assign(ratings, restoredRatings);
+ reviewStatus = nextStatus;
+ const position = DATA.turns.findIndex(
+  t => t.turn === data.current_turn
+ );
+ index = position >= 0 ? position : 0;
+ document.getElementById("overall").value = preference;
+ document.getElementById("finalnotes").value =
+  typeof data.final_notes === "string" ? data.final_notes : "";
+ document.getElementById("review-status").value = reviewStatus;
+ renderRatings();
+ render();
+ save();
+}
+
+function updateProgress() {
+ const reviewed = DATA.turns.filter(
+  t => ["A","B","tie"].includes(votes[t.turn])
+ ).length;
+ const skipped = DATA.turns.filter(
+  t => votes[t.turn] === "skip"
+ ).length;
+ const progress = document.getElementById("review-progress");
+ progress.max = DATA.turns.length;
+ progress.value = reviewed;
  document.getElementById("progress").textContent =
-   "Turn " + (index+1) + " / " + DATA.turns.length;
+  `Turn ${index+1}/${DATA.turns.length} · ` +
+  `${reviewed} rated · ${skipped} skipped · ` +
+  `${DATA.turns.length-reviewed-skipped} open`;
+ document.getElementById("jump").value =
+  DATA.turns[index].turn;
+}
+
+function render() {
+ const item = DATA.turns[index];
  const buttons = ["A","B","tie","skip"].map(value =>
-   `<button data-vote="${value}" class="${
-     votes[item.turn]===value?"selected":""}">${
-     value==="tie"?"Tie":value==="skip"?"Skip":value
-   }</button>`).join("");
+  `<button data-vote="${value}" class="${
+   votes[item.turn] === value ? "selected" : ""}">${
+   value === "tie" ? "Tie" :
+   value === "skip" ? "Skip" : value
+  }</button>`
+ ).join("");
  document.getElementById("turn").innerHTML = `
  <h2>Turn ${item.turn}</h2>
  <div class="player"><strong>Player</strong>
  <div class="rp-legend">Italic: action/narration · Bold: speech</div>
  <div class="player-text">${formatRP(item.player)}</div></div>
  <div class="cards">
-  <div class="panel"><h2>A</h2><div class="answer">${
-     formatRP(item.A)}</div></div>
-  <div class="panel"><h2>B</h2><div class="answer">${
-     formatRP(item.B)}</div></div>
+ <div class="panel"><h2>A</h2><div class="answer">${
+  formatRP(item.A)}</div></div>
+ <div class="panel"><h2>B</h2><div class="answer">${
+  formatRP(item.B)}</div></div>
  </div>
- <div class="actions"><strong>Which response do you prefer?</strong>
+ <div class="actions"><strong>Preferred response:</strong>
  ${buttons}</div>
  <textarea id="turnnote" placeholder="Optional reason...">${
-     escapeHTML(notes[item.turn] || "")}</textarea>`;
- document.querySelectorAll("[data-vote]").forEach(button =>
+  escapeHTML(notes[item.turn] || "")}</textarea>`;
+
+ document.querySelectorAll("[data-vote]").forEach(button => {
   button.onclick = () => {
-   votes[item.turn]=button.dataset.vote;
+   votes[item.turn] = button.dataset.vote;
    render();
-  });
- document.getElementById("turnnote").oninput = event =>
-   notes[item.turn]=event.target.value;
- document.getElementById("prev").disabled = index===0;
- document.getElementById("next").disabled =
-   index===DATA.turns.length-1;
-}
-function renderRatings(){
- const area = document.getElementById("ratings");
- area.innerHTML = DATA.criteria.map((name,i) => `
-  <div class="rating"><label>${escapeHTML(name)}</label>
-  ${["A","B"].map(side =>
-   `<select data-key="${i}:${side}"><option value="">${side}: —</option>${
-   [1,2,3,4,5].map(n => `<option value="${n}">${side}: ${n}</option>`
-      ).join("")}</select>`).join("")}</div>`).join("");
- area.querySelectorAll("select").forEach(select =>
-  select.onchange = () => ratings[select.dataset.key] =
-    select.value==="" ? null : Number(select.value));
-}
-document.getElementById("prev").onclick=()=>{index--;render()};
-document.getElementById("next").onclick=()=>{index++;render()};
-document.getElementById("export").onclick=()=>{
- const result = {
-  schema_version:1,
-  comparison_id:DATA.id,
-  mapping:DATA.mapping,
-  method:DATA.method,
-  turn_votes:DATA.turns.map(t=>({
-    turn:t.turn,vote:votes[t.turn]||null,
-    note:notes[t.turn]||""})),
-  criteria:DATA.criteria.map((name,i)=>({
-    name, A:ratings[i+":A"]??null,
-    B:ratings[i+":B"]??null})),
-  overall_preference:document.getElementById("overall").value||null,
-  final_notes:document.getElementById("finalnotes").value
+   save();
+  };
+ });
+ document.getElementById("turnnote").oninput = event => {
+  notes[item.turn] = event.target.value;
+  save();
  };
- const blob=new Blob([JSON.stringify(result,null,2)],
-   {type:"application/json"});
- const link=document.createElement("a");
- link.href=URL.createObjectURL(blob);
- link.download="rpbench-ab-"+DATA.id+".json";
- link.click();
- setTimeout(()=>URL.revokeObjectURL(link.href),2000);
+ document.getElementById("prev").disabled = index === 0;
+ document.getElementById("next").disabled =
+  index === DATA.turns.length - 1;
+ updateProgress();
+}
+
+function renderRatings() {
+ const area = document.getElementById("ratings");
+ area.innerHTML = DATA.criteria.map((name, i) => `
+ <div class="rating"><label>${escapeHTML(name)}</label>
+ ${["A","B"].map(side =>
+  `<select data-key="${i}:${side}">
+   <option value="">${side}: —</option>
+   ${[1,2,3,4,5].map(n =>
+    `<option value="${n}">${side}: ${n}</option>`
+   ).join("")}</select>`
+ ).join("")}</div>`).join("");
+ area.querySelectorAll("select").forEach(select => {
+  const value = ratings[select.dataset.key];
+  select.value = value == null ? "" : String(value);
+  select.onchange = () => {
+   ratings[select.dataset.key] =
+    select.value === "" ? null : Number(select.value);
+   save();
+  };
+ });
+}
+
+function goTo(position) {
+ if (position < 0 || position >= DATA.turns.length) return;
+ index = position;
+ render();
+ save();
+}
+
+document.getElementById("prev").onclick = () =>
+ goTo(index - 1);
+document.getElementById("next").onclick = () =>
+ goTo(index + 1);
+
+document.getElementById("open-turn").onclick = () => {
+ const next = DATA.turns.findIndex(
+  (t, i) => i > index && !votes[t.turn]
+ );
+ const fallback = DATA.turns.findIndex(t => !votes[t.turn]);
+ if (next >= 0) goTo(next);
+ else if (fallback >= 0) goTo(fallback);
+ else alert("No unrated turns remain.");
 };
+
+document.getElementById("jump-button").onclick = () => {
+ const turn = Number(document.getElementById("jump").value);
+ const position = DATA.turns.findIndex(t => t.turn === turn);
+ if (position < 0) alert("Turn not found.");
+ else goTo(position);
+};
+
+document.getElementById("jump").onkeydown = event => {
+ if (event.key === "Enter")
+  document.getElementById("jump-button").click();
+};
+
+document.getElementById("review-status").onchange = event => {
+ reviewStatus = event.target.value;
+ save();
+};
+document.getElementById("overall").onchange = save;
+document.getElementById("finalnotes").oninput = save;
+
+document.getElementById("export").onclick = () => {
+ const blob = new Blob(
+  [JSON.stringify(snapshot(), null, 2)],
+  {type:"application/json"}
+ );
+ const link = document.createElement("a");
+ link.href = URL.createObjectURL(blob);
+ link.download = "rpbench-ab-" + DATA.id + ".json";
+ link.click();
+ setTimeout(() => URL.revokeObjectURL(link.href), 2000);
+};
+
+document.getElementById("import-button").onclick = () =>
+ document.getElementById("import-file").click();
+
+document.getElementById("import-file").onchange = async event => {
+ const file = event.target.files[0];
+ if (!file) return;
+ try {
+  const contents = JSON.parse(await file.text());
+  restore(contents);
+  alert("Review restored successfully.");
+ } catch (err) {
+  alert("Import failed: " + err.message);
+ }
+ event.target.value = "";
+};
+
 renderRatings();
 render();
+
+try {
+ const saved = localStorage.getItem(STORAGE_KEY);
+ if (saved) restore(JSON.parse(saved));
+ else save();
+} catch (err) {
+ document.getElementById("storage-status").textContent =
+  "Autosave unavailable — use JSON export/import";
+}
 </script>
 </body>
 </html>"""
@@ -303,8 +533,16 @@ def summarize(path):
         if vote in votes:
             votes[vote] += 1
 
+    rows = data["turn_votes"]
+    rated = votes["A"] + votes["B"] + votes["tie"]
     result = {
         "comparison_id": data["comparison_id"],
+        "status": data.get("status", "complete"),
+        "rated_turns": rated,
+        "total_turns": len(rows),
+        "completion_fraction": (
+            rated / len(rows) if rows else 0.0
+        ),
         "votes": votes,
         "overall_preference": data.get("overall_preference"),
         "criteria": data.get("criteria", []),
