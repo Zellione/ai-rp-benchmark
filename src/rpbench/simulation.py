@@ -12,6 +12,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from .core import Backend, append, dump, load
+from .run_lock import run_lock
 from .characters import build_npc_prompt
 from .sampling import validate_sampling
 from .state import (
@@ -334,144 +335,145 @@ def run_simulation(
     )
     run_dir.mkdir(parents=True, exist_ok=False)
 
-    manifest = {
-        "schema_version": 2,
-        "type": "goal_driven_selfplay",
-        "status": "running",
-        "created_utc": timestamp,
-        "planned_turns": turns,
-        "completed_turns": 0,
-        "scenario": scenario,
-        "player": player,
-        "backend": {
-            k: v for k, v in config["backend"].items()
-            if k not in {"api_key", "api_key_env"}
-        },
-        "sampling": sampling,
-        "player_sampling": player_sampling,
-        "prompt_format": prompt_format,
-        "player_prompt_format": player_format,
-        "runtime": config.get("runtime", {}),
-        "character_cards": [
-            {
-                "path": str(path),
-                "sha256": sha256(path),
-                "card": card,
-            }
-            for path, card in loaded_cards
-        ],
-        "rendered_npc_system_prompt": npc_prompt,
-        "rendered_player_system_prompt": player_prompt,
-        "prompt_profile": prompt_profile,
-        "scenario_sha256": sha256(scenario_path),
-        "player_sha256": sha256(player_path),
-        "config_sha256": sha256(config_path),
-        "notes": (
-            "Self-play is not an independent model evaluation. "
-            "No context limit enforcement or goal-state "
-            "verification is implemented yet."
-        ),
-    }
+    with run_lock(run_dir):
+        manifest = {
+            "schema_version": 2,
+            "type": "goal_driven_selfplay",
+            "status": "running",
+            "created_utc": timestamp,
+            "planned_turns": turns,
+            "completed_turns": 0,
+            "scenario": scenario,
+            "player": player,
+            "backend": {
+                k: v for k, v in config["backend"].items()
+                if k not in {"api_key", "api_key_env"}
+            },
+            "sampling": sampling,
+            "player_sampling": player_sampling,
+            "prompt_format": prompt_format,
+            "player_prompt_format": player_format,
+            "runtime": config.get("runtime", {}),
+            "character_cards": [
+                {
+                    "path": str(path),
+                    "sha256": sha256(path),
+                    "card": card,
+                }
+                for path, card in loaded_cards
+            ],
+            "rendered_npc_system_prompt": npc_prompt,
+            "rendered_player_system_prompt": player_prompt,
+            "prompt_profile": prompt_profile,
+            "scenario_sha256": sha256(scenario_path),
+            "player_sha256": sha256(player_path),
+            "config_sha256": sha256(config_path),
+            "notes": (
+                "Self-play is not an independent model evaluation. "
+                "No context limit enforcement or goal-state "
+                "verification is implemented yet."
+            ),
+        }
 
-    dump(run_dir / "manifest.json", manifest)
-
-    ground_truth = build_ground_truth(
-        player, [card for _, card in loaded_cards]
-    )
-    state = initial_state(ground_truth)
-    dump(run_dir / "ground_truth.json", ground_truth)
-    dump(run_dir / "state.json", state)
-
-    transcript = run_dir / "conversation.md"
-    transcript.write_text(
-        f"# {scenario.get('title', name)}\n\n"
-        f"Player: {player['name']}\n\n"
-        f"Mode: Goal-driven self-play\n\n",
-        encoding="utf-8",
-    )
-
-    try:
-        for turn in range(1, turns + 1):
-            player_text = generate_role(
-                backend,
-                player_messages,
-                player_sampling,
-                player_format,
-                run_dir,
-                turn,
-                "player",
-            )
-
-            append(
-                run_dir / "observations.jsonl",
-                make_observation(turn, "player", player_text),
-            )
-
-            npc_messages.append({
-                "role": "user",
-                "content": player_text,
-            })
-
-            npc_text = generate_role(
-                backend,
-                npc_messages,
-                sampling,
-                prompt_format,
-                run_dir,
-                turn,
-                "npc",
-            )
-
-            append(
-                run_dir / "observations.jsonl",
-                make_observation(turn, "npc", npc_text),
-            )
-
-            # Reverse conversational roles for the player
-            # perspective. Never insert the NPC system prompt.
-            player_messages.append({
-                "role": "assistant",
-                "content": player_text,
-            })
-            player_messages.append({
-                "role": "user",
-                "content": npc_text,
-            })
-
-            npc_messages.append({
-                "role": "assistant",
-                "content": npc_text,
-            })
-
-            with transcript.open(
-                "a", encoding="utf-8"
-            ) as f:
-                f.write(
-                    f"## Turn {turn}\n\n"
-                    f"### Player ({player['name']})\n\n"
-                    f"{player_text}\n\n"
-                    f"### NPC\n\n{npc_text}\n\n"
-                )
-                f.flush()
-                os.fsync(f.fileno())
-
-            manifest["completed_turns"] = turn
-            dump(run_dir / "manifest.json", manifest)
-
-        manifest["status"] = "complete"
-
-    except Exception as error:
-        manifest["status"] = "failed"
-        manifest["error"] = repr(error)
-        raise
-
-    finally:
-        manifest["finished_utc"] = (
-            datetime.now(timezone.utc).isoformat()
-        )
         dump(run_dir / "manifest.json", manifest)
 
-    return run_dir
+        ground_truth = build_ground_truth(
+            player, [card for _, card in loaded_cards]
+        )
+        state = initial_state(ground_truth)
+        dump(run_dir / "ground_truth.json", ground_truth)
+        dump(run_dir / "state.json", state)
+
+        transcript = run_dir / "conversation.md"
+        transcript.write_text(
+            f"# {scenario.get('title', name)}\n\n"
+            f"Player: {player['name']}\n\n"
+            f"Mode: Goal-driven self-play\n\n",
+            encoding="utf-8",
+        )
+
+        try:
+            for turn in range(1, turns + 1):
+                player_text = generate_role(
+                    backend,
+                    player_messages,
+                    player_sampling,
+                    player_format,
+                    run_dir,
+                    turn,
+                    "player",
+                )
+
+                append(
+                    run_dir / "observations.jsonl",
+                    make_observation(turn, "player", player_text),
+                )
+
+                npc_messages.append({
+                    "role": "user",
+                    "content": player_text,
+                })
+
+                npc_text = generate_role(
+                    backend,
+                    npc_messages,
+                    sampling,
+                    prompt_format,
+                    run_dir,
+                    turn,
+                    "npc",
+                )
+
+                append(
+                    run_dir / "observations.jsonl",
+                    make_observation(turn, "npc", npc_text),
+                )
+
+                # Reverse conversational roles for the player
+                # perspective. Never insert the NPC system prompt.
+                player_messages.append({
+                    "role": "assistant",
+                    "content": player_text,
+                })
+                player_messages.append({
+                    "role": "user",
+                    "content": npc_text,
+                })
+
+                npc_messages.append({
+                    "role": "assistant",
+                    "content": npc_text,
+                })
+
+                with transcript.open(
+                    "a", encoding="utf-8"
+                ) as f:
+                    f.write(
+                        f"## Turn {turn}\n\n"
+                        f"### Player ({player['name']})\n\n"
+                        f"{player_text}\n\n"
+                        f"### NPC\n\n{npc_text}\n\n"
+                    )
+                    f.flush()
+                    os.fsync(f.fileno())
+
+                manifest["completed_turns"] = turn
+                dump(run_dir / "manifest.json", manifest)
+
+            manifest["status"] = "complete"
+
+        except Exception as error:
+            manifest["status"] = "failed"
+            manifest["error"] = repr(error)
+            raise
+
+        finally:
+            manifest["finished_utc"] = (
+                datetime.now(timezone.utc).isoformat()
+            )
+            dump(run_dir / "manifest.json", manifest)
+
+        return run_dir
 
 
 def main():

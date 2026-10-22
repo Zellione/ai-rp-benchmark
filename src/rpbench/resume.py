@@ -9,6 +9,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from .core import append, dump, load
+from .run_lock import run_lock
 from .observations import read_jsonl, validate_sequence
 from .simulation import (
     generate_role,
@@ -210,17 +211,17 @@ def _histories(manifest, entries):
 
 def resume_simulation(run_dir, turns=None):
     root = Path(run_dir).resolve()
+    with run_lock(root):
+        return _resume_simulation_locked(root, turns)
+
+
+def _resume_simulation_locked(run_dir, turns=None):
+    root = Path(run_dir).resolve()
     manifest_path = root / "manifest.json"
     manifest = load(manifest_path)
 
     if manifest.get("type") != "goal_driven_selfplay":
         raise ValueError("Not a self-play run")
-
-    if manifest.get("status") == "running":
-        raise ValueError(
-            "Run is marked running. Confirm the original "
-            "process has stopped before resuming."
-        )
 
     old_limit = manifest["planned_turns"]
     target = old_limit if turns is None else turns

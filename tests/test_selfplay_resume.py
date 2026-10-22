@@ -167,6 +167,19 @@ class SelfplayResumeTests(unittest.TestCase):
         ):
             resume_simulation(self.root)
 
+    def test_resume_orphaned_running_manifest(self):
+        self.seed_pair()
+
+        self.manifest["status"] = "running"
+        dump(self.root / "manifest.json", self.manifest)
+
+        resume_simulation(self.root)
+
+        result = load(self.root / "manifest.json")
+        self.assertEqual(result["status"], "complete")
+        self.assertEqual(result["completed_turns"], 3)
+        self.assertEqual(len(self.observations()), 6)
+
     def test_extend_existing_run(self):
         self.seed_pair()
 
