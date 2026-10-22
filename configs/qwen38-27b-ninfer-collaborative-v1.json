@@ -1,0 +1,21 @@
+{
+  "backend": {
+    "name": "ninfer",
+    "mode": "chat",
+    "base_url": "http://127.0.0.1:8080",
+    "model": "qwen3.8-27b",
+    "verified_openai_api": true,
+    "timeout": 600
+  },
+  "sampling": {
+    "temperature": 0.8,
+    "top_p": 0.95,
+    "max_tokens": 4096
+  },
+  "player_sampling": {
+    "temperature": 0.7,
+    "top_p": 0.9,
+    "max_tokens": 2048
+  },
+  "prompt_profile": "prompt-profiles/rpbench-collaborative-v1.json"
+}
