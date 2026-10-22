@@ -1,3 +1,5 @@
+import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -179,6 +181,67 @@ class SelfplayResumeTests(unittest.TestCase):
         self.assertEqual(result["status"], "complete")
         self.assertEqual(result["completed_turns"], 3)
         self.assertEqual(len(self.observations()), 6)
+
+    def test_recover_after_sigkill_mid_journal_append(self):
+        self.seed_pair()
+        self.manifest["status"] = "running"
+        dump(self.root / "manifest.json", self.manifest)
+
+        code = """
+import os
+import sys
+import time
+from pathlib import Path
+from rpbench.run_lock import run_lock
+
+root = Path(sys.argv[1])
+with run_lock(root):
+    with (root / "events.jsonl").open("ab") as file:
+        file.write(
+            b'{"type":"response","turn":2,"role":"player"'
+        )
+        file.flush()
+        os.fsync(file.fileno())
+    print("PARTIAL_WRITTEN", flush=True)
+    time.sleep(120)
+"""
+
+        process = subprocess.Popen(
+            [sys.executable, "-c", code, str(self.root)],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+        )
+
+        try:
+            self.assertEqual(
+                process.stdout.readline().strip(),
+                "PARTIAL_WRITTEN",
+            )
+        finally:
+            if process.poll() is None:
+                process.kill()
+            process.communicate(timeout=10)
+
+        resume_simulation(self.root)
+
+        manifest = load(self.root / "manifest.json")
+        entries = self.observations()
+
+        self.assertEqual(manifest["status"], "complete")
+        self.assertEqual(manifest["completed_turns"], 3)
+        self.assertEqual(len(entries), 6)
+        self.assertEqual(
+            entries[0]["text"],
+            "Already archived player",
+        )
+
+        backups = list(
+            (self.root / ".recovery").glob(
+                "events.jsonl.*.partial"
+            )
+        )
+        self.assertEqual(len(backups), 1)
 
     def test_extend_existing_run(self):
         self.seed_pair()

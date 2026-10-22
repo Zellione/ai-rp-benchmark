@@ -10,6 +10,7 @@ from pathlib import Path
 
 from .core import append, dump, load
 from .run_lock import run_lock
+from .journal_recovery import recover_run_journals
 from .observations import read_jsonl, validate_sequence
 from .simulation import (
     generate_role,
@@ -222,6 +223,9 @@ def _resume_simulation_locked(run_dir, turns=None):
 
     if manifest.get("type") != "goal_driven_selfplay":
         raise ValueError("Not a self-play run")
+
+    # Safe to inspect and repair journals: this process owns the lock.
+    recover_run_journals(root)
 
     old_limit = manifest["planned_turns"]
     target = old_limit if turns is None else turns

@@ -66,6 +66,11 @@ with run_lock(sys.argv[1]):
                     proc.kill()
                     proc.wait(timeout=10)
 
+                if proc.stdout is not None:
+                    proc.stdout.close()
+                if proc.stderr is not None:
+                    proc.stderr.close()
+
     def test_lock_file_is_persistent(self):
         with tempfile.TemporaryDirectory() as temp:
             path = Path(temp) / ".rpbench.lock"

@@ -5,6 +5,7 @@ import json
 import os
 import re
 import time
+import tempfile
 import urllib.error
 import urllib.request
 from dataclasses import dataclass
@@ -15,7 +16,40 @@ from .sampling import validate_sampling
 
 
 def dump(path: Path, value: Any) -> None:
-    path.write_text(json.dumps(value, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    """Atomically replace a JSON file on the same filesystem."""
+    path = Path(path)
+    content = json.dumps(value, indent=2, ensure_ascii=False) + chr(10)
+
+    temp_path = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            mode="w",
+            encoding="utf-8",
+            dir=path.parent,
+            prefix=f".{path.name}.",
+            suffix=".tmp",
+            delete=False,
+        ) as file:
+            temp_path = Path(file.name)
+            file.write(content)
+            file.flush()
+            os.fsync(file.fileno())
+
+        os.replace(temp_path, path)
+        temp_path = None
+
+        # Persist the directory entry as well as the file data.
+        directory_fd = os.open(
+            path.parent,
+            os.O_RDONLY | os.O_DIRECTORY,
+        )
+        try:
+            os.fsync(directory_fd)
+        finally:
+            os.close(directory_fd)
+    finally:
+        if temp_path is not None:
+            temp_path.unlink(missing_ok=True)
 
 
 def append(path: Path, value: Any) -> None:
