@@ -273,8 +273,10 @@ def _resume_simulation_locked(run_dir, turns=None):
     }
     backend = make_backend(backend_config)
 
-    if backend.mode != "chat":
-        raise ValueError("Resume requires chat mode")
+    if backend.mode not in {"chat", "completion"}:
+        raise ValueError(
+            "Resume requires chat or completion mode"
+        )
 
     # Recover journaled successful responses first.
     entries = _recover_archived_responses(
@@ -330,6 +332,7 @@ def _resume_simulation_locked(run_dir, turns=None):
                     root,
                     turn,
                     "player",
+                    manifest.get("player_reasoning_effort"),
                 )
 
                 entry = make_observation(
@@ -350,6 +353,7 @@ def _resume_simulation_locked(run_dir, turns=None):
                 root,
                 turn,
                 "npc",
+                manifest.get("npc_reasoning_effort"),
             )
 
             entry = make_observation(

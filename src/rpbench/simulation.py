@@ -172,10 +172,29 @@ def make_histories(player_prompt, npc_prompt, opening):
 def generate_role(
     backend, messages, sampling, prompt_format,
     run_dir, turn, role,
+    reasoning_effort=None,
 ):
     url, payload = backend.prepare(
         messages, sampling, prompt_format
     )
+
+    if reasoning_effort is not None:
+        allowed = {
+            "none", "minimal", "low", "medium",
+            "high", "xhigh", "max",
+        }
+        if backend.name != "ninfer" or backend.mode != "chat":
+            raise ValueError(
+                "Per-request reasoning_effort is verified "
+                "only for ninfer/chat"
+            )
+        if (
+            not isinstance(reasoning_effort, str)
+            or reasoning_effort not in allowed
+        ):
+            raise ValueError("Invalid reasoning_effort")
+
+        payload["reasoning_effort"] = reasoning_effort
 
     for attempt in (1, 2):
         append(run_dir / "events.jsonl", {
@@ -281,9 +300,9 @@ def run_simulation(
     config = load(config_path)
 
     backend = make_backend(config)
-    if backend.mode != "chat":
+    if backend.mode not in {"chat", "completion"}:
         raise ValueError(
-            "Self-play v0.4 requires chat completion"
+            "Self-play requires chat or completion mode"
         )
 
     sampling = config.get("sampling", {})
@@ -351,6 +370,12 @@ def run_simulation(
             },
             "sampling": sampling,
             "player_sampling": player_sampling,
+            "player_reasoning_effort": config.get(
+                "player_reasoning_effort"
+            ),
+            "npc_reasoning_effort": config.get(
+                "npc_reasoning_effort"
+            ),
             "prompt_format": prompt_format,
             "player_prompt_format": player_format,
             "runtime": config.get("runtime", {}),
@@ -402,6 +427,7 @@ def run_simulation(
                     run_dir,
                     turn,
                     "player",
+                    config.get("player_reasoning_effort"),
                 )
 
                 append(
@@ -422,6 +448,7 @@ def run_simulation(
                     run_dir,
                     turn,
                     "npc",
+                    config.get("npc_reasoning_effort"),
                 )
 
                 append(
