@@ -14,6 +14,7 @@ from pathlib import Path
 from .core import Backend, append, dump, load
 from .run_lock import run_lock
 from .characters import build_npc_prompt
+from .completion_presets import resolve_completion_preset
 from .sampling import validate_sampling
 from .state import (
     build_ground_truth,
@@ -336,6 +337,16 @@ def run_simulation(
         player_prompt, npc_prompt, config, config_path
     )
 
+    completion_preset = resolve_completion_preset(
+        config, config_path, player, loaded_cards
+    )
+    if completion_preset is not None:
+        prompt_format, player_format, completion_info = (
+            completion_preset
+        )
+    else:
+        completion_info = None
+
     player_messages, npc_messages = make_histories(
         player_prompt, npc_prompt, opening
     )
@@ -378,6 +389,7 @@ def run_simulation(
             ),
             "prompt_format": prompt_format,
             "player_prompt_format": player_format,
+            "completion_preset": completion_info,
             "runtime": config.get("runtime", {}),
             "character_cards": [
                 {

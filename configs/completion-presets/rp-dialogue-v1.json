@@ -1,0 +1,9 @@
+{
+  "id": "rp-dialogue-v1",
+  "description": "Named-character transcript format inspired by conversational roleplay.",
+  "style": "rp_dialogue_v1",
+  "separator": "\n\n",
+  "system_prefix": "Roleplay setup and character information:\n",
+  "scene_label": "Opening scene",
+  "opening_as_scene": true
+}

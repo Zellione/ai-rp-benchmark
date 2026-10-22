@@ -81,6 +81,61 @@ def raw_prompt(messages: list[dict], format: dict) -> str:
     return sep.join(prefixes[m["role"]] + m["content"] for m in messages) + sep + suffix
 
 
+def roleplay_raw_prompt(messages: list[dict], fmt: dict) -> str:
+    """Render a named-speaker completion prompt for one role."""
+    if fmt.get("style") != "rp_dialogue_v1":
+        raise ValueError("Unknown roleplay completion format")
+
+    speakers = fmt.get("speakers")
+    if (
+        not isinstance(speakers, dict)
+        or any(
+            not isinstance(speakers.get(key), str)
+            or not speakers[key].strip()
+            for key in ("user", "assistant")
+        )
+    ):
+        raise ValueError("Missing completion speakers")
+
+    separator = fmt.get("separator", "\n\n")
+    system_prefix = fmt.get("system_prefix", "Instructions:\n")
+    scene_label = fmt.get("scene_label", "Scene")
+    opening_as_scene = fmt.get("opening_as_scene", False)
+
+    if not all(
+        isinstance(value, str)
+        for value in (separator, system_prefix, scene_label)
+    ):
+        raise ValueError("Invalid completion format strings")
+
+    if not isinstance(opening_as_scene, bool):
+        raise ValueError("Invalid opening_as_scene")
+
+    parts = []
+    for index, message in enumerate(messages):
+        role = message["role"]
+        content = message["content"]
+
+        if role == "system":
+            parts.append(system_prefix + content)
+        elif role in {"user", "assistant"}:
+            label = speakers[role]
+            if (
+                role == "user"
+                and opening_as_scene
+                and index == 1
+            ):
+                label = scene_label
+
+            parts.append(f"{label}:\n{content}")
+        else:
+            raise ValueError(f"Unsupported message role: {role}")
+
+    # Always end at the next speaker's generation boundary.
+    parts.append(f'{speakers["assistant"]}:\n')
+    return separator.join(parts)
+
+
 @dataclass
 class Backend:
     name: str
@@ -109,7 +164,10 @@ class Backend:
             return root + "/v1/chat/completions", payload
         if self.mode != "completion":
             raise ValueError(f"Unsupported mode: {self.mode}")
-        prompt = raw_prompt(messages, prompt_format)
+        if prompt_format.get("style") == "rp_dialogue_v1":
+            prompt = roleplay_raw_prompt(messages, prompt_format)
+        else:
+            prompt = raw_prompt(messages, prompt_format)
         if self.name == "koboldcpp-native":
             native = dict(sampling)
             if "max_tokens" in native:

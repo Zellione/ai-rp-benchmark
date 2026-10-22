@@ -1,0 +1,9 @@
+{
+  "id": "collaborative-raw-v1",
+  "description": "Neutral role-labelled text completion for collaborative RP.",
+  "style": "rp_dialogue_v1",
+  "separator": "\n\n",
+  "system_prefix": "Instructions:\n",
+  "scene_label": "Scene",
+  "opening_as_scene": true
+}
