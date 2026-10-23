@@ -24,6 +24,58 @@ def file_hash(path):
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
 
+def fixed_case_context(run_dir):
+    """Read the exact prompts used by a controlled NPC run."""
+    root = Path(run_dir)
+    manifest = json.loads(
+        (root / "manifest.json").read_text(encoding="utf-8")
+    )
+
+    if manifest.get("type") != "fixed_context_npc_ab":
+        return None
+
+    count = manifest.get("completed_turns")
+    if type(count) is not int or count < 1:
+        raise ValueError("Incomplete fixed-context NPC archive")
+
+    contexts = []
+    for index in range(1, count + 1):
+        record = json.loads(
+            (
+                root / "cases" / f"{index:03d}.json"
+            ).read_text(encoding="utf-8")
+        )
+        payload = record.get("payload", {})
+        messages = payload.get("messages")
+
+        if not isinstance(messages, list) or len(messages) < 3:
+            raise ValueError("Invalid fixed-case messages")
+
+        for position, message in enumerate(messages):
+            if not isinstance(message, dict):
+                raise ValueError("Invalid fixed-case message")
+            if (
+                message.get("role") not in {
+                    "system", "user", "assistant"
+                }
+                or not isinstance(message.get("content"), str)
+            ):
+                raise ValueError("Invalid fixed-case message")
+
+            if position == 0 and message["role"] != "system":
+                raise ValueError("Missing system prompt")
+
+        if messages[-1]["role"] != "user":
+            raise ValueError("Missing final player action")
+
+        contexts.append({
+            "id": record.get("id"),
+            "messages": messages,
+        })
+
+    return contexts
+
+
 def prepare(run_a, run_b, seed="personal-rp"):
     a = Path(run_a).resolve()
     b = Path(run_b).resolve()
@@ -49,6 +101,30 @@ def prepare(run_a, run_b, seed="personal-rp"):
                 "Turnwise A/B requires identical player inputs."
             )
 
+    fixed_a = fixed_case_context(a)
+    fixed_b = fixed_case_context(b)
+
+    if (fixed_a is None) != (fixed_b is None):
+        raise ValueError("Cannot mix fixed-context and self-play runs")
+
+    if fixed_a is not None:
+        if len(fixed_a) != len(left) // 2:
+            raise ValueError("Fixed-context case count mismatch")
+
+        if fixed_a != fixed_b:
+            raise ValueError(
+                "Controlled A/B requires identical archived inputs"
+            )
+
+        for index, case in enumerate(fixed_a):
+            if (
+                case["messages"][-1]["content"]
+                != left[2 * index]["text"]
+            ):
+                raise ValueError(
+                    "Archived player action differs from request"
+                )
+
     identity = hashlib.sha256(
         (seed + "\0" + str(a) + "\0" + str(b)).encode()
     ).digest()
@@ -62,6 +138,11 @@ def prepare(run_a, run_b, seed="personal-rp"):
         turns.append({
             "turn": left[i]["turn"],
             "player": left[i]["text"],
+            "context": (
+                fixed_a[i // 2]["messages"][1:-1]
+                if fixed_a is not None
+                else None
+            ),
             "A": left[i + 1]["text"],
             "B": right[i + 1]["text"],
         })
@@ -128,6 +209,16 @@ button:hover {border-color:#a8c8e8}
 .rp-plain {color:#e0e6f0}
 .rp-legend {margin:8px 0;color:#aebcd0;font-size:.85rem}
 
+.case-context {
+ background:#192635;border:1px solid #40556a;
+ border-radius:10px;padding:12px 16px;margin:16px 0;
+}
+.case-context summary {cursor:pointer;font-weight:600}
+.context-entry {margin:14px 0;line-height:1.6}
+.context-entry pre {
+ white-space:pre-wrap;overflow-wrap:anywhere;
+ font:inherit;color:#e0e6f0;margin:6px 0;
+}
 .player {background:#253044;border-left:4px solid #84a8df;
          padding:14px;margin:18px 0;white-space:pre-wrap}
 .actions {display:flex;gap:9px;flex-wrap:wrap;margin:18px 0}
@@ -373,6 +464,15 @@ function render() {
  ).join("");
  document.getElementById("turn").innerHTML = `
  <h2>Turn ${item.turn}</h2>
+ ${item.context ? `
+ <details class="case-context">
+ <summary>Shared scene context / Vorgeschichte</summary>
+ ${item.context.map(message => `
+ <div class="context-entry">
+ <strong>${message.role === "user" ? "Player / Context" : "NPC"}</strong>
+ <pre>${escapeHTML(message.content)}</pre>
+ </div>`).join("")}
+ </details>` : ""}
  <div class="player"><strong>Player</strong>
  <div class="rp-legend">Italic: action/narration · Bold: speech</div>
  <div class="player-text">${formatRP(item.player)}</div></div>

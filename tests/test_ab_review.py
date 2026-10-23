@@ -126,5 +126,91 @@ class ABReviewTests(unittest.TestCase):
         self.assertEqual(result["votes"]["tie"], 1)
 
 
+    def fixed_fixture(self, name, context, answer):
+        root = self.run_fixture(name, answer)
+        (root / "cases").mkdir()
+
+        (root / "manifest.json").write_text(
+            json.dumps({
+                "type": "fixed_context_npc_ab",
+                "status": "complete",
+                "completed_turns": 1,
+            }),
+            encoding="utf-8",
+        )
+
+        (root / "cases" / "001.json").write_text(
+            json.dumps({
+                "id": "case-1",
+                "payload": {
+                    "messages": [
+                        {
+                            "role": "system",
+                            "content": "Portray Elara.",
+                        },
+                        {
+                            "role": "user",
+                            "content": context,
+                        },
+                        {
+                            "role": "user",
+                            "content": "Hello",
+                        },
+                    ],
+                },
+            }),
+            encoding="utf-8",
+        )
+        return root
+
+    def test_controlled_context_in_review(self):
+        a = self.fixed_fixture(
+            "fixed-a", "A rainy observatory", "Hello"
+        )
+        b = self.fixed_fixture(
+            "fixed-b", "A rainy observatory", "Welcome"
+        )
+
+        data = prepare(a, b)
+
+        self.assertEqual(
+            data["turns"][0]["context"],
+            [{
+                "role": "user",
+                "content": "A rainy observatory",
+            }],
+        )
+
+    def test_different_controlled_context_rejected(self):
+        a = self.fixed_fixture(
+            "fixed-a", "Rain", "Hello"
+        )
+        b = self.fixed_fixture(
+            "fixed-b", "Sunshine", "Welcome"
+        )
+
+        with self.assertRaisesRegex(
+            ValueError, "identical archived inputs"
+        ):
+            prepare(a, b)
+
+    def test_context_html_is_escaped(self):
+        a = self.fixed_fixture(
+            "fixed-a", "</script><img src=x>", "Hello"
+        )
+        b = self.fixed_fixture(
+            "fixed-b", "</script><img src=x>", "Welcome"
+        )
+
+        output = self.root / "context.html"
+        export_html(prepare(a, b), output)
+
+        content = output.read_text(encoding="utf-8")
+        self.assertNotIn("</script><img src=x>", content)
+        self.assertIn("Shared scene context", content)
+        self.assertIn("escapeHTML(message.content)", content)
+
+
+
 if __name__ == "__main__":
     unittest.main()

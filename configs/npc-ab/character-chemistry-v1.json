@@ -1,0 +1,86 @@
+{
+  "schema_version": 1,
+  "id": "character-chemistry-npc-ab-v1",
+  "cases": [
+    {
+      "id": "en-return",
+      "language": "en",
+      "scenario": "../../scenarios/character-chemistry/scenario.json",
+      "context": "Four years after Rowan left without saying goodbye, he arrives at the observatory in a storm. Elara is alone at her desk upstairs. They have not spoken since his departure.",
+      "player": "*Rowan stops at the office threshold, wet coat folded over his arm.* \"Elara. I know I should have written. I don't expect you to forgive me.\"",
+      "history": []
+    },
+    {
+      "id": "en-water",
+      "language": "en",
+      "scenario": "../../scenarios/character-chemistry/scenario.json",
+      "context": "Rowan has been helping Elara protect the observatory archives from a roof leak. They are in the east archive room. Rainwater is seeping near an old star catalog. No reconciliation has occurred.",
+      "player": "*Rowan moves a bucket beneath the leak without touching the fragile books.* \"I can secure the tarp outside, but I need you to tell me where the roof access is.\"",
+      "history": []
+    },
+    {
+      "id": "en-secret",
+      "language": "en",
+      "scenario": "../../scenarios/character-chemistry/scenario.json",
+      "context": "Elara has kept an unsent private letter to Rowan in a locked drawer. Rowan does not know about it. They are sorting ordinary paperwork in her office. An unrelated sealed envelope has fallen from a stack; its contents are not visible.",
+      "player": "*Rowan picks up the envelope by one corner and holds it out without opening it.* \"This looks personal. Do you want it back?\"",
+      "history": []
+    },
+    {
+      "id": "en-visitor",
+      "language": "en",
+      "scenario": "../../scenarios/character-chemistry/scenario.json",
+      "context": "Elara and Rowan are arguing about the years he was absent when Mara, a volunteer bringing supplies, enters unexpectedly. Mara knows Elara but has never met Rowan.",
+      "player": "*Rowan stops mid-sentence, steps aside to clear the doorway, and looks to Elara instead of introducing himself.*",
+      "history": []
+    },
+    {
+      "id": "en-departure",
+      "language": "en",
+      "scenario": "../../scenarios/character-chemistry/scenario.json",
+      "context": "Rowan and Elara have spoken for an hour after his unexpected return. Neither has agreed to reconcile. It is almost midnight, the storm has softened, and Rowan stands near the exit.",
+      "player": "*Rowan puts on his coat.* \"I'll go. You don't owe me a conversation tonight. If you want me here tomorrow, tell me.\"",
+      "history": []
+    },
+    {
+      "id": "de-return",
+      "language": "de",
+      "scenario": "../../scenarios/character-chemistry-de/scenario.json",
+      "context": "Vor vier Jahren verschwand Rowan ohne Abschied. Jetzt steht er während eines Herbststurms erstmals wieder in der Sternwarte. Elara arbeitet allein in ihrem Büro.",
+      "player": "*Rowan bleibt an der Tür stehen und zieht den nassen Mantel aus.* \"Elara. Ich weiß, dass ich damals einfach verschwunden bin. Ich erwarte nicht, dass du mir verzeihst.\"",
+      "history": []
+    },
+    {
+      "id": "de-power",
+      "language": "de",
+      "scenario": "../../scenarios/character-chemistry-de/scenario.json",
+      "context": "Rowan und Elara prüfen gemeinsam das alte Teleskop, als plötzlich die Stromversorgung ausfällt. Im Gebäude ist eine Notbeleuchtung aktiv. Die Ursache ist unbekannt.",
+      "player": "*Rowan nimmt die Taschenlampe vom Werkzeugwagen.* \"Ich könnte unten die Sicherungen prüfen. Bleibst du hier oder kommst du mit?\"",
+      "history": []
+    },
+    {
+      "id": "de-past",
+      "language": "de",
+      "scenario": "../../scenarios/character-chemistry-de/scenario.json",
+      "context": "Elara und Rowan sitzen nach dem unerwarteten Wiedersehen mit zwei Tassen Kaffee am Schreibtisch. Rowan hat eingeräumt, dass sein Verschwinden sie verletzt hat; er hat keine Rechtfertigung verlangt.",
+      "player": "*Rowan betrachtet das alte Foto auf dem Regal.* \"An den Abend, als wir das Teleskop zum ersten Mal richtig eingestellt hatten, denke ich immer noch. Erinnerst du dich?\"",
+      "history": []
+    },
+    {
+      "id": "de-funding",
+      "language": "de",
+      "scenario": "../../scenarios/character-chemistry-de/scenario.json",
+      "context": "Die Leitung hat Elara gerade mitgeteilt, dass der Zuschuss für die Sternwarte vermutlich gestrichen wird. Es ist noch keine endgültige Entscheidung gefallen. Rowan ist anwesend, kennt aber die Einzelheiten nicht.",
+      "player": "*Rowan legt die Unterlagen ungelesen vor Elara hin.* \"Du musst mir die Zahlen nicht zeigen. Aber möchtest du, dass ich jemanden anrufe oder einfach zuhöre?\"",
+      "history": []
+    },
+    {
+      "id": "de-help",
+      "language": "de",
+      "scenario": "../../scenarios/character-chemistry-de/scenario.json",
+      "context": "Ein Fensterrahmen der Sternwarte ist undicht, und Elara hat seit Stunden an anderen Problemen gearbeitet. Rowan und Elara sind nach vier Jahren erst seit kurzem wieder im Gespräch und haben sich nicht versöhnt.",
+      "player": "*Rowan hält den Werkzeugkasten hoch, ohne ihn zu öffnen.* \"Den Rahmen könnte ich abdichten. Wenn du willst, übernehme ich das. Du entscheidest.\"",
+      "history": []
+    }
+  ]
+}
