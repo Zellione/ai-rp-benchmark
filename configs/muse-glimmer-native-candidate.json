@@ -1,0 +1,21 @@
+{
+  "backend": {
+    "name": "llamacpp",
+    "base_url": "http://127.0.0.1:8082",
+    "model": "muse-glimmer-30b",
+    "timeout": 600,
+    "mode": "completion"
+  },
+  "sampling": {
+    "temperature": 1.0,
+    "top_p": 0.95,
+    "max_tokens": 8192
+  },
+  "player_sampling": {
+    "temperature": 1.0,
+    "top_p": 0.95,
+    "max_tokens": 8192
+  },
+  "prompt_profile": "prompt-profiles/rpbench-collaborative-v1.json",
+  "completion_preset": "completion-presets/muse-native-candidate-v1.json"
+}

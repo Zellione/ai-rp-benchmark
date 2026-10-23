@@ -15,6 +15,12 @@ from .core import Backend, append, dump, load
 from .run_lock import run_lock
 from .characters import build_npc_prompt
 from .completion_presets import resolve_completion_preset
+from .completion_response import (
+    CompletionParseError,
+    parse_atem_completion,
+    parse_atem_direct_completion,
+    parse_atem_thinking_prefill,
+)
 from .sampling import validate_sampling
 from .state import (
     build_ground_truth,
@@ -231,8 +237,31 @@ def generate_role(
             or ""
         )
         finish = choice.get("finish_reason")
+        parse_error = None
 
-        if not answer.strip():
+        parser_name = prompt_format.get("response_parser")
+        if finish != "length" and parser_name is not None:
+            try:
+                if parser_name == "atem_v1":
+                    answer, reasoning = parse_atem_completion(answer)
+                elif parser_name == "atem_direct_v1":
+                    answer, reasoning = parse_atem_direct_completion(
+                        answer
+                    )
+                elif parser_name == "atem_thinking_prefill_v1":
+                    answer, reasoning = parse_atem_thinking_prefill(
+                        answer
+                    )
+                else:
+                    raise ValueError(
+                        f"Unknown completion response parser: {parser_name}"
+                    )
+            except CompletionParseError as exc:
+                parse_error = str(exc)
+
+        if parse_error is not None:
+            status = "parse_error"
+        elif not answer.strip():
             status = (
                 "reasoning_only" if reasoning
                 else "empty_response"
@@ -250,6 +279,7 @@ def generate_role(
             "text": answer,
             "reasoning": reasoning,
             "response_status": status,
+            "parse_error": parse_error,
             "finish_reason": finish,
             "usage": response.get("usage"),
             "elapsed_seconds": elapsed,

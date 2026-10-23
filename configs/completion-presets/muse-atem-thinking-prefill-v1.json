@@ -1,0 +1,16 @@
+{
+  "id": "muse-atem-thinking-prefill-v1",
+  "description": "Muse ATEM text completion with the reasoning channel pre-opened and strict separation of visible RP output.",
+  "style": "native_turns_v1",
+  "begin": "",
+  "turn_start": "<|start|>",
+  "role_separator": "<|message|>",
+  "turn_end": "<|eot|>",
+  "user_role": "user",
+  "assistant_role": "assistant to=user",
+  "system_role": "system",
+  "system_handling": "native",
+  "generation_suffix": "<|start|>assistant to=self<|message|>",
+  "system_suffix": "\n\nReasoning strength: high.\n\n# Valid recipients: \"self\", \"user\".",
+  "response_parser": "atem_thinking_prefill_v1"
+}

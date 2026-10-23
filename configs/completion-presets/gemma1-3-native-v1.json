@@ -1,0 +1,12 @@
+{
+  "id": "gemma1-3-native-v1",
+  "description": "Native text completion format for Gemma 1-3 IT, text-only.",
+  "style": "native_turns_v1",
+  "begin": "",
+  "turn_start": "<start_of_turn>",
+  "role_separator": "\n",
+  "turn_end": "<end_of_turn>\n",
+  "user_role": "user",
+  "assistant_role": "model",
+  "system_handling": "first_user"
+}

@@ -1,0 +1,20 @@
+{
+  "backend": {
+    "name": "llamacpp",
+    "base_url": "http://127.0.0.1:8082",
+    "model": "muse-glimmer-30b",
+    "timeout": 600,
+    "mode": "chat"
+  },
+  "sampling": {
+    "temperature": 0.8,
+    "top_p": 0.95,
+    "max_tokens": 4096
+  },
+  "player_sampling": {
+    "temperature": 0.7,
+    "top_p": 0.9,
+    "max_tokens": 4096
+  },
+  "prompt_profile": "prompt-profiles/rpbench-collaborative-v1.json"
+}

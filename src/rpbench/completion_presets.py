@@ -28,6 +28,53 @@ def resolve_completion_preset(
     ).resolve()
     preset = load(path)
 
+    if preset.get("style") == "native_turns_v1":
+        required = [
+            "begin", "turn_start", "role_separator",
+            "turn_end", "user_role", "assistant_role",
+            "system_handling",
+        ]
+        if preset.get("system_handling") == "native":
+            required.append("system_role")
+
+        for key in required:
+            if not isinstance(preset.get(key), str):
+                raise ValueError(f"Invalid native template field: {key}")
+
+        if preset["system_handling"] not in {"native", "first_user"}:
+            raise ValueError("Unsupported system handling")
+
+        shared = {
+            "style": preset["style"],
+            **{key: preset[key] for key in required},
+        }
+
+        if "system_suffix" in preset:
+            if not isinstance(preset["system_suffix"], str):
+                raise ValueError("Invalid system_suffix")
+            shared["system_suffix"] = preset["system_suffix"]
+
+        if "response_parser" in preset:
+            if preset["response_parser"] not in {
+                "atem_v1", "atem_direct_v1",
+                "atem_thinking_prefill_v1"
+            }:
+                raise ValueError("Unsupported completion response parser")
+            shared["response_parser"] = preset["response_parser"]
+
+        if "generation_suffix" in preset:
+            if not isinstance(preset["generation_suffix"], str):
+                raise ValueError("Invalid generation_suffix")
+            shared["generation_suffix"] = preset["generation_suffix"]
+
+        provenance = {
+            "id": preset["id"],
+            "path": str(path),
+            "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
+            "content": preset,
+        }
+        return dict(shared), dict(shared), provenance
+
     if preset.get("style") != "rp_dialogue_v1":
         raise ValueError("Unsupported completion preset style")
 

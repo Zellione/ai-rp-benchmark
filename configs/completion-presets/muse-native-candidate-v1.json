@@ -1,0 +1,16 @@
+{
+  "id": "muse-native-candidate-v1",
+  "description": "Experimental Muse-Glimmer native-token completion candidate; verify against the GGUF template before benchmarking.",
+  "style": "native_turns_v1",
+  "begin": "",
+  "turn_start": "<|start|>",
+  "role_separator": "<|message|>",
+  "turn_end": "<|eot|>",
+  "user_role": "user",
+  "assistant_role": "assistant to=user",
+  "system_role": "system",
+  "system_handling": "native",
+  "generation_suffix": "<|start|>assistant",
+  "system_suffix": "\n\nReasoning strength: high.\n\n# Valid recipients: \"self\", \"user\".",
+  "response_parser": "atem_v1"
+}

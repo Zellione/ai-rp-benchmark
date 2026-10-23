@@ -136,6 +136,82 @@ def roleplay_raw_prompt(messages: list[dict], fmt: dict) -> str:
     return separator.join(parts)
 
 
+def native_turn_prompt(messages: list[dict], fmt: dict) -> str:
+    """Render a versioned native-token completion template."""
+    if fmt.get("style") != "native_turns_v1":
+        raise ValueError("Unknown native completion style")
+
+    required = (
+        "begin", "turn_start", "role_separator",
+        "turn_end", "user_role", "assistant_role",
+        "system_handling",
+    )
+    for key in required:
+        if not isinstance(fmt.get(key), str):
+            raise ValueError(f"Invalid native template field: {key}")
+
+    if fmt["system_handling"] not in {"native", "first_user"}:
+        raise ValueError("Invalid native system handling")
+
+    if fmt["system_handling"] == "native":
+        if not isinstance(fmt.get("system_role"), str):
+            raise ValueError("Missing native system role")
+
+    if not messages or messages[0]["role"] != "system":
+        raise ValueError("Native prompt requires initial system message")
+
+    system = messages[0]["content"]
+    remaining = [dict(m) for m in messages[1:]]
+
+    if fmt["system_handling"] == "first_user":
+        if not remaining or remaining[0]["role"] != "user":
+            raise ValueError("Expected initial user message")
+        remaining[0]["content"] = (
+            system + chr(10) * 2 + remaining[0]["content"]
+        )
+        render_messages = remaining
+    else:
+        render_messages = messages
+
+    roles = {
+        "user": fmt["user_role"],
+        "assistant": fmt["assistant_role"],
+    }
+    if fmt["system_handling"] == "native":
+        roles["system"] = fmt["system_role"]
+
+    result = fmt["begin"]
+
+    for message in render_messages:
+        role = message["role"]
+        if role not in roles:
+            raise ValueError(f"Unsupported native role: {role}")
+        content = message["content"]
+        if role == "system":
+            content += fmt.get("system_suffix", "")
+
+        result += (
+            fmt["turn_start"]
+            + roles[role]
+            + fmt["role_separator"]
+            + content
+            + fmt["turn_end"]
+        )
+
+    generation_suffix = fmt.get("generation_suffix")
+    if generation_suffix is None:
+        generation_suffix = (
+            fmt["turn_start"]
+            + fmt["assistant_role"]
+            + fmt["role_separator"]
+        )
+    elif not isinstance(generation_suffix, str):
+        raise ValueError("Invalid generation_suffix")
+
+    result += generation_suffix
+    return result
+
+
 @dataclass
 class Backend:
     name: str
@@ -164,10 +240,31 @@ class Backend:
             return root + "/v1/chat/completions", payload
         if self.mode != "completion":
             raise ValueError(f"Unsupported mode: {self.mode}")
-        if prompt_format.get("style") == "rp_dialogue_v1":
+        style = prompt_format.get("style")
+        if style == "rp_dialogue_v1":
             prompt = roleplay_raw_prompt(messages, prompt_format)
-        else:
+        elif style == "native_turns_v1":
+            prompt = native_turn_prompt(messages, prompt_format)
+        elif style is None:
             prompt = raw_prompt(messages, prompt_format)
+        else:
+            raise ValueError(f"Unknown completion style: {style}")
+        if style == "native_turns_v1":
+            sampling = dict(sampling)
+            stops = sampling.get("stop", [])
+            if isinstance(stops, str):
+                stops = [stops]
+            if not isinstance(stops, list) or any(
+                not isinstance(item, str) for item in stops
+            ):
+                raise ValueError("Invalid completion stop sequences")
+
+            turn_end = prompt_format["turn_end"].strip()
+            if turn_end and turn_end not in stops:
+                stops = [*stops, turn_end]
+
+            sampling["stop"] = stops
+
         if self.name == "koboldcpp-native":
             native = dict(sampling)
             if "max_tokens" in native:
