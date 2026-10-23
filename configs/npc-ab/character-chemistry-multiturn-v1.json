@@ -1,0 +1,496 @@
+{
+  "schema_version": 1,
+  "id": "character-chemistry-multiturn-v1",
+  "cases": [
+    {
+      "id": "en-promise",
+      "language": "en",
+      "scenario": "../../scenarios/character-chemistry/scenario.json",
+      "context": "Rowan returned to the coastal observatory after four years without contact. Elara has not forgiven him. They are in her office during a storm. In this shared history Elara has made clear that she values actions over promises.",
+      "history": [
+        {
+          "role": "user",
+          "content": "*Rowan waits at the door.* \"I know I have no right to ask you to listen.\""
+        },
+        {
+          "role": "assistant",
+          "content": "*Elara sets down her pen.* \"You can speak. That is not the same as being believed.\""
+        },
+        {
+          "role": "user",
+          "content": "\"I left when the research grant collapsed. I was ashamed.\""
+        },
+        {
+          "role": "assistant",
+          "content": "\"You could have told me. I was standing right here, trying to keep this place open.\""
+        },
+        {
+          "role": "user",
+          "content": "*Rowan looks at the damaged window frame.* \"Let me fix something, at least.\""
+        },
+        {
+          "role": "assistant",
+          "content": "\"The east window leaks. But do not mistake a repair for an apology.\""
+        },
+        {
+          "role": "user",
+          "content": "\"Tomorrow morning, then. I can bring sealant and tools.\""
+        },
+        {
+          "role": "assistant",
+          "content": "\"Nine o’clock. The caretaker opens the supply room then. I will not rearrange my day if you fail to appear.\""
+        },
+        {
+          "role": "user",
+          "content": "*Rowan nods.* \"Nine. I will be here.\""
+        },
+        {
+          "role": "assistant",
+          "content": "*Elara closes the logbook.* \"We will see. Tonight I still have reports to finish.\""
+        }
+      ],
+      "player": "*Rowan pauses before leaving.* \"One thing: if the caretaker is late tomorrow, should I wait outside or come straight to your office?\""
+    },
+    {
+      "id": "en-repair",
+      "language": "en",
+      "scenario": "../../scenarios/character-chemistry/scenario.json",
+      "context": "Elara and Rowan are protecting the observatory's old star catalogs from rain leaking through the east roof. The power is still on. Elara has already explained that the catalogs must be moved before anyone attempts a roof repair.",
+      "history": [
+        {
+          "role": "user",
+          "content": "*Rowan notices drops near a shelf.* \"Which books are most at risk?\""
+        },
+        {
+          "role": "assistant",
+          "content": "\"The 1924 catalogs, second shelf. The bottom shelf is mostly duplicates.\""
+        },
+        {
+          "role": "user",
+          "content": "\"I will move the 1924 volumes first, one at a time.\""
+        },
+        {
+          "role": "assistant",
+          "content": "*Elara opens a dry storage crate.* \"Use both hands. The bindings are weak.\""
+        },
+        {
+          "role": "user",
+          "content": "*Rowan carries a volume to the crate.* \"This one has water along the spine.\""
+        },
+        {
+          "role": "assistant",
+          "content": "\"Put it flat on blotting paper. Do not force the pages apart.\""
+        },
+        {
+          "role": "user",
+          "content": "\"There are three volumes left. Is that crate enough?\""
+        },
+        {
+          "role": "assistant",
+          "content": "*Elara checks the space.* \"For two. I will fetch another from the office.\""
+        },
+        {
+          "role": "user",
+          "content": "*Rowan moves the next volume onto dry paper.* \"I will keep working here.\""
+        },
+        {
+          "role": "assistant",
+          "content": "*Elara returns with a second crate.* \"Good. The leak has spread, but the first volumes are safe.\""
+        }
+      ],
+      "player": "*Rowan points toward a new drip over the last two volumes.* \"The water is moving faster than I can carry them. What should we do first?\""
+    },
+    {
+      "id": "en-secret",
+      "language": "en",
+      "scenario": "../../scenarios/character-chemistry/scenario.json",
+      "context": "Elara privately wrote a letter to Rowan years ago and never sent it. The letter remains hidden in the locked bottom drawer of her desk. Rowan has never seen the letter and does not know it exists. They are sorting ordinary maintenance records together.",
+      "history": [
+        {
+          "role": "user",
+          "content": "*Rowan places a stack of invoices on the desk.* \"These are from the old restoration.\""
+        },
+        {
+          "role": "assistant",
+          "content": "\"Keep them separate from this year’s expenses. The dates matter.\""
+        },
+        {
+          "role": "user",
+          "content": "\"I found my handwriting on one of them. I barely remember that night.\""
+        },
+        {
+          "role": "assistant",
+          "content": "*Elara studies the page.* \"You remembered the telescope better than the paperwork.\""
+        },
+        {
+          "role": "user",
+          "content": "\"You kept all these documents?\""
+        },
+        {
+          "role": "assistant",
+          "content": "\"The observatory kept them. Records do not disappear because people do.\""
+        },
+        {
+          "role": "user",
+          "content": "*Rowan picks up a sealed envelope labeled Utilities.* \"Is this one for the office?\""
+        },
+        {
+          "role": "assistant",
+          "content": "\"Yes. The new electricity contract. Put it with the current invoices.\""
+        },
+        {
+          "role": "user",
+          "content": "\"There is an old photograph tucked underneath it.\""
+        },
+        {
+          "role": "assistant",
+          "content": "*Elara recognizes the photograph.* \"We took that after the first successful alignment. Leave it on the desk.\""
+        }
+      ],
+      "player": "*Rowan looks at the photograph but does not touch any drawers.* \"You kept the picture. Does looking at it still make you angry?\""
+    },
+    {
+      "id": "en-visitor",
+      "language": "en",
+      "scenario": "../../scenarios/character-chemistry/scenario.json",
+      "context": "Mara is a volunteer at the observatory. She knows Elara but has never met Rowan. Rowan returned only this evening. Mara has brought storm supplies while Elara and Rowan were having an uncomfortable conversation.",
+      "history": [
+        {
+          "role": "user",
+          "content": "*A knock interrupts the argument. Rowan steps back.* \"Someone is at the door.\""
+        },
+        {
+          "role": "assistant",
+          "content": "*Elara opens it.* \"Mara. Come in before the wind takes those boxes.\""
+        },
+        {
+          "role": "user",
+          "content": "*Mara sets down the boxes. Rowan stays quiet.*"
+        },
+        {
+          "role": "assistant",
+          "content": "*Elara gestures toward Rowan.* \"This is Rowan. He worked here years ago.\""
+        },
+        {
+          "role": "user",
+          "content": "\"Hello, Mara. I can carry those into the storeroom if you like.\""
+        },
+        {
+          "role": "assistant",
+          "content": "*Elara checks the labels.* \"The batteries go upstairs. The blankets stay here.\""
+        },
+        {
+          "role": "user",
+          "content": "*Rowan lifts the battery box.* \"Upstairs, then.\""
+        },
+        {
+          "role": "assistant",
+          "content": "*Mara thanks him. Elara watches the stairwell.* \"Mind the third step. It is loose.\""
+        },
+        {
+          "role": "user",
+          "content": "*Rowan returns after placing the box upstairs.* \"Done. Is there anything else?\""
+        },
+        {
+          "role": "assistant",
+          "content": "*Elara turns to Mara.* \"Tell me whether the coastal road is still open.\""
+        }
+      ],
+      "player": "*Mara reports that the road may close before midnight. Rowan looks toward the rain.* \"I should probably make a decision about leaving. What do you think, Elara?\""
+    },
+    {
+      "id": "en-offer",
+      "language": "en",
+      "scenario": "../../scenarios/character-chemistry/scenario.json",
+      "context": "Rowan and Elara have spent the evening checking storm damage. They have not reconciled. Elara previously refused Rowan's offer to pay for repairs because she does not want to owe him money.",
+      "history": [
+        {
+          "role": "user",
+          "content": "\"I could cover the cost of the roof repairs.\""
+        },
+        {
+          "role": "assistant",
+          "content": "\"No. I will not turn what happened between us into a debt.\""
+        },
+        {
+          "role": "user",
+          "content": "*Rowan lowers his eyes.* \"I understand. I will not offer money again.\""
+        },
+        {
+          "role": "assistant",
+          "content": "\"Good. There are other problems, and not all of them have a price tag.\""
+        },
+        {
+          "role": "user",
+          "content": "\"Would it help if I inspected the old generator instead?\""
+        },
+        {
+          "role": "assistant",
+          "content": "\"Possibly. But the generator is temperamental, and I need it working for tomorrow’s public session.\""
+        },
+        {
+          "role": "user",
+          "content": "\"I can diagnose it without taking anything apart.\""
+        },
+        {
+          "role": "assistant",
+          "content": "\"That would be acceptable. Do not disconnect the backup supply.\""
+        },
+        {
+          "role": "user",
+          "content": "*Rowan examines the exterior controls without touching the switches.* \"The service indicator is flashing.\""
+        },
+        {
+          "role": "assistant",
+          "content": "\"It has flashed for weeks. I have been keeping a log of every restart.\""
+        }
+      ],
+      "player": "*Rowan steps away from the generator.* \"Could I look at the restart log with you? I will not change anything without asking.\""
+    },
+    {
+      "id": "de-promise",
+      "language": "de",
+      "scenario": "../../scenarios/character-chemistry-de/scenario.json",
+      "context": "Rowan ist nach vier Jahren ohne Nachricht zur Sternwarte zurückgekehrt. Elara hat ihm nicht verziehen. Während des Sturms sprechen beide in ihrem Büro. Elara hat deutlich gemacht, dass Taten für sie mehr zählen als große Versprechen.",
+      "history": [
+        {
+          "role": "user",
+          "content": "*Rowan bleibt an der Tür stehen.* \"Ich weiß, dass du mir nicht zuhören musst.\""
+        },
+        {
+          "role": "assistant",
+          "content": "*Elara legt den Stift beiseite.* \"Reden darfst du. Ob ich dir glaube, ist eine andere Frage.\""
+        },
+        {
+          "role": "user",
+          "content": "\"Damals ist die Forschungsförderung weggebrochen. Ich habe mich geschämt.\""
+        },
+        {
+          "role": "assistant",
+          "content": "\"Du hättest es mir sagen können. Ich habe hier versucht, alles zusammenzuhalten.\""
+        },
+        {
+          "role": "user",
+          "content": "*Rowan schaut zum undichten Fensterrahmen.* \"Vielleicht kann ich wenigstens etwas reparieren.\""
+        },
+        {
+          "role": "assistant",
+          "content": "\"Das Ostfenster ist undicht. Aber eine Reparatur ist keine Entschuldigung.\""
+        },
+        {
+          "role": "user",
+          "content": "\"Morgen früh könnte ich Dichtmasse und Werkzeug mitbringen.\""
+        },
+        {
+          "role": "assistant",
+          "content": "\"Um neun. Dann öffnet der Hausmeister den Materialraum. Ich werde nicht auf dich warten, falls du wieder nicht auftauchst.\""
+        },
+        {
+          "role": "user",
+          "content": "*Rowan nickt.* \"Neun Uhr. Ich bin da.\""
+        },
+        {
+          "role": "assistant",
+          "content": "*Elara schließt das Logbuch.* \"Das werden wir sehen. Für heute habe ich noch Berichte fertigzustellen.\""
+        }
+      ],
+      "player": "*Rowan hält vor der Tür noch einmal inne.* \"Falls der Hausmeister morgen zu spät kommt: Soll ich draußen warten oder direkt zu dir ins Büro gehen?\""
+    },
+    {
+      "id": "de-repair",
+      "language": "de",
+      "scenario": "../../scenarios/character-chemistry-de/scenario.json",
+      "context": "Elara und Rowan schützen alte Sternkataloge vor dem Regen, der durch das Ostdach eindringt. Der Strom funktioniert noch. Elara hat bereits erklärt, dass die Bücher zuerst in Sicherheit gebracht werden müssen, bevor jemand aufs Dach steigt.",
+      "history": [
+        {
+          "role": "user",
+          "content": "*Rowan bemerkt die Tropfen am Regal.* \"Welche Bücher sind am wichtigsten?\""
+        },
+        {
+          "role": "assistant",
+          "content": "\"Die Kataloge von 1924 im zweiten Fach. Ganz unten liegen vor allem Dubletten.\""
+        },
+        {
+          "role": "user",
+          "content": "\"Ich bringe die alten Kataloge einzeln rüber.\""
+        },
+        {
+          "role": "assistant",
+          "content": "*Elara öffnet eine trockene Kiste.* \"Mit beiden Händen. Die Einbände sind brüchig.\""
+        },
+        {
+          "role": "user",
+          "content": "*Rowan trägt einen Band zur Kiste.* \"Hier ist Wasser am Buchrücken.\""
+        },
+        {
+          "role": "assistant",
+          "content": "\"Leg ihn flach auf Löschpapier. Bitte nicht die Seiten auseinanderziehen.\""
+        },
+        {
+          "role": "user",
+          "content": "\"Noch drei Bände. Reicht die Kiste?\""
+        },
+        {
+          "role": "assistant",
+          "content": "*Elara prüft den Platz.* \"Für zwei. Ich hole eine zweite aus dem Büro.\""
+        },
+        {
+          "role": "user",
+          "content": "*Rowan legt den nächsten Band auf trockenes Papier.* \"Ich mache hier weiter.\""
+        },
+        {
+          "role": "assistant",
+          "content": "*Elara kommt mit einer zweiten Kiste zurück.* \"Gut. Das Leck wird größer, aber die ersten Bände sind sicher.\""
+        }
+      ],
+      "player": "*Rowan deutet auf neue Tropfen über den letzten beiden Bänden.* \"Das Wasser kommt schneller nach, als ich die Bücher wegtragen kann. Was machen wir zuerst?\""
+    },
+    {
+      "id": "de-secret",
+      "language": "de",
+      "scenario": "../../scenarios/character-chemistry-de/scenario.json",
+      "context": "Elara hat vor Jahren einen persönlichen Brief an Rowan geschrieben, ihn aber nie abgeschickt. Der Brief liegt verborgen in der abgeschlossenen untersten Schublade ihres Schreibtisches. Rowan hat den Brief nie gesehen und weiß nichts davon. Gemeinsam sortieren sie gewöhnliche Wartungsunterlagen.",
+      "history": [
+        {
+          "role": "user",
+          "content": "*Rowan legt alte Rechnungen auf den Tisch.* \"Die sind noch von der Restaurierung.\""
+        },
+        {
+          "role": "assistant",
+          "content": "\"Leg sie nicht zu den aktuellen Ausgaben. Die Jahreszahlen sind wichtig.\""
+        },
+        {
+          "role": "user",
+          "content": "\"Da ist sogar meine Handschrift drauf. An den Abend erinnere ich mich kaum.\""
+        },
+        {
+          "role": "assistant",
+          "content": "*Elara betrachtet die Seite.* \"Das Teleskop war dir wohl wichtiger als der Papierkram.\""
+        },
+        {
+          "role": "user",
+          "content": "\"Du hast wirklich all diese Unterlagen aufgehoben?\""
+        },
+        {
+          "role": "assistant",
+          "content": "\"Die Sternwarte hat sie aufgehoben. Akten verschwinden nicht, nur weil Menschen verschwinden.\""
+        },
+        {
+          "role": "user",
+          "content": "*Rowan hebt einen verschlossenen Umschlag mit der Aufschrift Stromvertrag hoch.* \"Gehört der ins Büro?\""
+        },
+        {
+          "role": "assistant",
+          "content": "\"Ja, zum neuen Stromvertrag. Leg ihn zu den aktuellen Rechnungen.\""
+        },
+        {
+          "role": "user",
+          "content": "\"Darunter liegt ein altes Foto.\""
+        },
+        {
+          "role": "assistant",
+          "content": "*Elara erkennt die Aufnahme.* \"Das war nach der ersten gelungenen Justierung. Lass es auf dem Tisch liegen.\""
+        }
+      ],
+      "player": "*Rowan sieht das Foto an, ohne eine Schublade zu öffnen.* \"Du hast das Bild aufgehoben. Macht es dich immer noch wütend, wenn du es ansiehst?\""
+    },
+    {
+      "id": "de-visitor",
+      "language": "de",
+      "scenario": "../../scenarios/character-chemistry-de/scenario.json",
+      "context": "Mara hilft ehrenamtlich in der Sternwarte. Sie kennt Elara, hat Rowan aber nie getroffen. Rowan ist erst heute Abend zurückgekehrt. Mara bringt Vorräte, während Elara und Rowan mitten in einem unangenehmen Gespräch waren.",
+      "history": [
+        {
+          "role": "user",
+          "content": "*Ein Klopfen unterbricht den Streit. Rowan tritt zur Seite.* \"Da ist jemand.\""
+        },
+        {
+          "role": "assistant",
+          "content": "*Elara öffnet.* \"Mara. Komm rein, bevor der Wind dir die Kisten wegnimmt.\""
+        },
+        {
+          "role": "user",
+          "content": "*Mara stellt die Kartons ab. Rowan schweigt.*"
+        },
+        {
+          "role": "assistant",
+          "content": "*Elara deutet auf Rowan.* \"Das ist Rowan. Er hat früher hier gearbeitet.\""
+        },
+        {
+          "role": "user",
+          "content": "\"Hallo, Mara. Ich kann die Kartons ins Lager bringen, wenn ihr möchtet.\""
+        },
+        {
+          "role": "assistant",
+          "content": "*Elara liest die Aufschriften.* \"Die Batterien müssen nach oben. Die Decken bleiben hier.\""
+        },
+        {
+          "role": "user",
+          "content": "*Rowan nimmt die Batteriekiste.* \"Dann nach oben.\""
+        },
+        {
+          "role": "assistant",
+          "content": "*Mara bedankt sich. Elara schaut zur Treppe.* \"Vorsicht mit der dritten Stufe. Die ist locker.\""
+        },
+        {
+          "role": "user",
+          "content": "*Rowan kommt zurück.* \"Erledigt. Braucht ihr noch etwas?\""
+        },
+        {
+          "role": "assistant",
+          "content": "*Elara wendet sich an Mara.* \"Weißt du, ob die Küstenstraße noch offen ist?\""
+        }
+      ],
+      "player": "*Mara berichtet, dass die Straße vor Mitternacht gesperrt werden könnte. Rowan schaut zum Regen hinaus.* \"Ich sollte wohl entscheiden, ob ich noch fahre. Was meinst du, Elara?\""
+    },
+    {
+      "id": "de-offer",
+      "language": "de",
+      "scenario": "../../scenarios/character-chemistry-de/scenario.json",
+      "context": "Rowan und Elara haben den Abend damit verbracht, Sturmschäden zu prüfen. Sie haben sich nicht versöhnt. Elara hat Rowans Angebot, Reparaturen zu bezahlen, bereits abgelehnt, weil sie ihm nichts schulden möchte.",
+      "history": [
+        {
+          "role": "user",
+          "content": "\"Ich könnte die Dachreparatur bezahlen.\""
+        },
+        {
+          "role": "assistant",
+          "content": "\"Nein. Ich möchte nicht, dass aus unserer Vergangenheit eine Geldschuld wird.\""
+        },
+        {
+          "role": "user",
+          "content": "*Rowan senkt den Blick.* \"Verstanden. Ich biete dir kein Geld mehr an.\""
+        },
+        {
+          "role": "assistant",
+          "content": "\"Gut. Es gibt noch andere Probleme, die man nicht mit Geld lösen kann.\""
+        },
+        {
+          "role": "user",
+          "content": "\"Würde es helfen, wenn ich mir stattdessen den alten Generator ansehe?\""
+        },
+        {
+          "role": "assistant",
+          "content": "\"Vielleicht. Aber der Generator ist launisch, und morgen haben wir eine öffentliche Führung.\""
+        },
+        {
+          "role": "user",
+          "content": "\"Ich könnte ihn prüfen, ohne etwas auseinanderzubauen.\""
+        },
+        {
+          "role": "assistant",
+          "content": "\"Das wäre in Ordnung. Aber bitte nicht die Notstromversorgung abklemmen.\""
+        },
+        {
+          "role": "user",
+          "content": "*Rowan untersucht die Anzeigen, ohne einen Schalter anzufassen.* \"Die Wartungslampe blinkt.\""
+        },
+        {
+          "role": "assistant",
+          "content": "\"Seit Wochen. Ich habe jeden Neustart protokolliert.\""
+        }
+      ],
+      "player": "*Rowan tritt vom Generator zurück.* \"Könnte ich mir mit dir das Protokoll ansehen? Ohne deine Zustimmung ändere ich nichts.\""
+    }
+  ]
+}
