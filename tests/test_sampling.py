@@ -32,5 +32,56 @@ class SamplingTests(unittest.TestCase):
             validate_sampling("mock", "chat", {"max_tokens": -1})
 
 
+
+class LlamaCppChatSamplingTests(unittest.TestCase):
+    def test_top_k_is_allowed(self):
+        validate_sampling(
+            "llamacpp",
+            "chat",
+            {"temperature": 1.0, "top_p": 0.95, "top_k": 64},
+        )
+
+    def test_top_k_reaches_chat_payload(self):
+        backend = Backend(
+            "llamacpp",
+            "http://127.0.0.1:8082",
+            "deckard-gemma4-31b",
+            "chat",
+        )
+
+        endpoint, payload = backend.prepare(
+            [{"role": "user", "content": "Hello"}],
+            {"temperature": 1.0, "top_k": 64},
+            {},
+        )
+
+        self.assertEqual(
+            endpoint,
+            "http://127.0.0.1:8082/v1/chat/completions",
+        )
+        self.assertEqual(payload["top_k"], 64)
+        self.assertEqual(payload["temperature"], 1.0)
+
+    def test_top_k_rejects_invalid_values(self):
+        for value in (-1, 1.5, True, "64", None):
+            with self.subTest(value=value):
+                with self.assertRaisesRegex(ValueError, "top_k"):
+                    validate_sampling(
+                        "llamacpp", "chat", {"top_k": value}
+                    )
+
+    def test_other_native_parameters_still_rejected(self):
+        with self.assertRaisesRegex(ValueError, "dry_multiplier"):
+            validate_sampling(
+                "llamacpp", "chat", {"dry_multiplier": 0.8}
+            )
+
+    def test_other_generic_chat_adapters_not_affected(self):
+        with self.assertRaisesRegex(ValueError, "top_k"):
+            validate_sampling(
+                "ninfer", "chat", {"top_k": 64}
+            )
+
+
 if __name__ == "__main__":
     unittest.main()

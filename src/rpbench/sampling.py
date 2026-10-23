@@ -32,6 +32,8 @@ def validate_sampling(name: str, mode: str, sampling: dict) -> None:
         allowed = COMMON | LLAMA | KOBOLD
     elif name == "vllm" and mode in {"chat", "completion"}:
         allowed = COMMON | VLLM
+    elif name == "llamacpp" and mode == "chat":
+        allowed = COMMON | {"top_k"}
     elif name == "llamacpp-native" and mode == "completion":
         allowed = COMMON | LLAMA
     elif name == "koboldcpp-native" and mode == "completion":
@@ -45,6 +47,11 @@ def validate_sampling(name: str, mode: str, sampling: dict) -> None:
             f"Unverified sampling parameter(s) for {name}/{mode}: {', '.join(unknown)}. "
             "Use an engine-native adapter or extend its validated capability profile."
         )
+    if "top_k" in sampling and (
+        type(sampling["top_k"]) is not int
+        or sampling["top_k"] < 0
+    ):
+        raise ValueError("top_k must be a nonnegative integer")
     if "max_tokens" in sampling and (type(sampling["max_tokens"]) is not int or sampling["max_tokens"] <= 0):
         raise ValueError("max_tokens must be a positive integer")
     if "temperature" in sampling and (not isinstance(sampling["temperature"], (int, float)) or isinstance(sampling["temperature"], bool) or sampling["temperature"] < 0):
