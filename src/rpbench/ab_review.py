@@ -76,7 +76,10 @@ def fixed_case_context(run_dir):
     return contexts
 
 
-def prepare(run_a, run_b, seed="personal-rp"):
+def prepare(
+    run_a, run_b, seed="personal-rp",
+    allow_system_prompt_difference=False,
+):
     a = Path(run_a).resolve()
     b = Path(run_b).resolve()
 
@@ -111,7 +114,26 @@ def prepare(run_a, run_b, seed="personal-rp"):
         if len(fixed_a) != len(left) // 2:
             raise ValueError("Fixed-context case count mismatch")
 
-        if fixed_a != fixed_b:
+        if allow_system_prompt_difference:
+            for first, second in zip(fixed_a, fixed_b):
+                if first["id"] != second["id"]:
+                    raise ValueError("Fixed case IDs differ")
+                if (
+                    first["messages"][-1]
+                    != second["messages"][-1]
+                ):
+                    raise ValueError(
+                        "Player input differs between archived requests"
+                    )
+
+                if (
+                    first["messages"][1:-1]
+                    != second["messages"][1:-1]
+                ):
+                    raise ValueError(
+                        "Controlled A/B requires identical non-system inputs"
+                    )
+        elif fixed_a != fixed_b:
             raise ValueError(
                 "Controlled A/B requires identical archived inputs"
             )
@@ -124,6 +146,27 @@ def prepare(run_a, run_b, seed="personal-rp"):
                 raise ValueError(
                     "Archived player action differs from request"
                 )
+
+    if allow_system_prompt_difference and fixed_a is None:
+        raise ValueError(
+            "System-prompt comparison requires fixed-context runs"
+        )
+
+    system_prompt_comparison = None
+    if fixed_a is not None and allow_system_prompt_difference:
+        def system_hashes(cases):
+            return [
+                hashlib.sha256(
+                    case["messages"][0]["content"].encode("utf-8")
+                ).hexdigest()
+                for case in cases
+            ]
+
+        system_prompt_comparison = {
+            "mode": "system_prompt_variant",
+            "run_a_hashes": system_hashes(fixed_a),
+            "run_b_hashes": system_hashes(fixed_b),
+        }
 
     identity = hashlib.sha256(
         (seed + "\0" + str(a) + "\0" + str(b)).encode()
@@ -158,12 +201,20 @@ def prepare(run_a, run_b, seed="personal-rp"):
                         file_hash(source_path(b)),
                     ],
                     "seed": seed,
+                    "allow_system_prompt_difference":
+                        allow_system_prompt_difference,
                 },
                 sort_keys=True,
             ).encode()
         ).hexdigest()[:16],
         "turns": turns,
         "criteria": CRITERIA,
+        "comparison_mode": (
+            "system_prompt_variant"
+            if allow_system_prompt_difference
+            else "identical_inputs"
+        ),
+        "system_prompt_comparison": system_prompt_comparison,
         "mapping": {
             "A": {
                 "run": str(a),
@@ -175,6 +226,10 @@ def prepare(run_a, run_b, seed="personal-rp"):
             },
         },
         "method": (
+            "Blind system-prompt A/B; identical non-system messages; "
+            "human preference, not an objective model score"
+            if allow_system_prompt_difference
+            else
             "Personal blind A/B; identical player prompts; "
             "human preference, not an objective model score"
         ),
@@ -327,6 +382,8 @@ function snapshot() {
   comparison_id: DATA.id,
   mapping: DATA.mapping,
   method: DATA.method,
+  comparison_mode: DATA.comparison_mode,
+  system_prompt_comparison: DATA.system_prompt_comparison,
   status: reviewStatus,
   current_turn: DATA.turns[index].turn,
   turn_votes: DATA.turns.map(t => ({
@@ -661,13 +718,25 @@ def main():
     make.add_argument("--run-b", required=True)
     make.add_argument("--out", required=True)
     make.add_argument("--seed", default="personal-rp")
+    make.add_argument(
+        "--allow-system-prompt-difference",
+        action="store_true",
+        help="Compare fixed-context runs with different system prompts",
+    )
 
     report = sub.add_parser("report")
     report.add_argument("--results", required=True)
 
     args = parser.parse_args()
     if args.command == "create":
-        data = prepare(args.run_a, args.run_b, args.seed)
+        data = prepare(
+            args.run_a,
+            args.run_b,
+            args.seed,
+            allow_system_prompt_difference=(
+                args.allow_system_prompt_difference
+            ),
+        )
         export_html(data, args.out)
         print("Created:", args.out)
         print("Turns:", len(data["turns"]))

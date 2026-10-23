@@ -1,0 +1,22 @@
+{
+  "backend": {
+    "name": "llamacpp",
+    "base_url": "http://127.0.0.1:8082",
+    "model": "deckard-gemma4-31b",
+    "timeout": 600,
+    "mode": "chat"
+  },
+  "sampling": {
+    "temperature": 1.0,
+    "top_p": 0.95,
+    "max_tokens": 8192,
+    "top_k": 64
+  },
+  "player_sampling": {
+    "temperature": 1.0,
+    "top_p": 0.95,
+    "max_tokens": 8192,
+    "top_k": 64
+  },
+  "prompt_profile": "prompt-profiles/rpbench-immersive-v1.json"
+}

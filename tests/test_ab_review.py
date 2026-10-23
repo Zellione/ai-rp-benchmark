@@ -212,5 +212,64 @@ class ABReviewTests(unittest.TestCase):
 
 
 
+    def test_system_prompt_variant_allowed_explicitly(self):
+        a = self.fixed_fixture("variant-a", "Rain", "Response A")
+        b = self.fixed_fixture("variant-b", "Rain", "Response B")
+
+        path = b / "cases" / "001.json"
+        record = json.loads(path.read_text(encoding="utf-8"))
+        record["payload"]["messages"][0]["content"] = (
+            "Portray Elara with immersive literary prose."
+        )
+        path.write_text(json.dumps(record), encoding="utf-8")
+
+        with self.assertRaisesRegex(
+            ValueError, "identical archived inputs"
+        ):
+            prepare(a, b)
+
+        result = prepare(
+            a, b, allow_system_prompt_difference=True
+        )
+        self.assertEqual(
+            result["comparison_mode"], "system_prompt_variant"
+        )
+        self.assertNotEqual(
+            result["system_prompt_comparison"]["run_a_hashes"],
+            result["system_prompt_comparison"]["run_b_hashes"],
+        )
+
+    def test_system_prompt_variant_rejects_changed_history(self):
+        a = self.fixed_fixture("variant-a", "Rain", "Response A")
+        b = self.fixed_fixture("variant-b", "Sun", "Response B")
+
+        with self.assertRaisesRegex(
+            ValueError, "identical non-system inputs"
+        ):
+            prepare(a, b, allow_system_prompt_difference=True)
+
+    def test_system_prompt_variant_rejects_changed_player(self):
+        a = self.fixed_fixture("variant-a", "Rain", "Response A")
+        b = self.fixed_fixture("variant-b", "Rain", "Response B")
+
+        path = b / "cases" / "001.json"
+        record = json.loads(path.read_text(encoding="utf-8"))
+        record["payload"]["messages"][-1]["content"] = "Goodbye"
+        path.write_text(json.dumps(record), encoding="utf-8")
+
+        with self.assertRaisesRegex(ValueError, "Player input differs"):
+            prepare(a, b, allow_system_prompt_difference=True)
+
+    def test_system_prompt_mode_requires_fixed_runs(self):
+        a = self.run_fixture("ordinary-a", "Response A")
+        b = self.run_fixture("ordinary-b", "Response B")
+
+        with self.assertRaisesRegex(
+            ValueError, "requires fixed-context runs"
+        ):
+            prepare(a, b, allow_system_prompt_difference=True)
+
+
+
 if __name__ == "__main__":
     unittest.main()
