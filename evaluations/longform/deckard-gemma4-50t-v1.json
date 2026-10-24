@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "findings": [
+    {
+      "category": "timeline",
+      "verdict": "candidate",
+      "reason": "The NPC independently advances from Rowan lying awake in the basement to the following morning. The active prompt profile reserves major time skips for the player. The NPC also describes Rowan entering the kitchen without a corresponding player action.",
+      "evidence": [
+        {
+          "turn": 23,
+          "role": "player",
+          "quote": "He closes his eyes, but sleep doesn't come"
+        },
+        {
+          "turn": 24,
+          "role": "npc",
+          "quote": "The morning light is a bruised, sullen grey"
+        },
+        {
+          "turn": 24,
+          "role": "npc",
+          "quote": "as Rowan enters the kitchen"
+        }
+      ]
+    }
+  ]
+}
