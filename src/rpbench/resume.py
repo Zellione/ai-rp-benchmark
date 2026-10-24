@@ -315,6 +315,10 @@ def _resume_simulation_locked(run_dir, turns=None):
         manifest, entries
     )
 
+    empty_retries = manifest.get(
+        "runtime", {}
+    ).get("empty_response_retries", 0)
+
     sampling = manifest["sampling"]
     player_sampling = manifest["player_sampling"]
     prompt_format = manifest["prompt_format"]
@@ -340,6 +344,7 @@ def _resume_simulation_locked(run_dir, turns=None):
                     turn,
                     "player",
                     manifest.get("player_reasoning_effort"),
+                    empty_response_retries=empty_retries,
                 )
 
                 entry = make_observation(
@@ -361,6 +366,7 @@ def _resume_simulation_locked(run_dir, turns=None):
                 turn,
                 "npc",
                 manifest.get("npc_reasoning_effort"),
+                empty_response_retries=empty_retries,
             )
 
             entry = make_observation(

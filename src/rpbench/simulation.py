@@ -196,7 +196,14 @@ def generate_role(
     backend, messages, sampling, prompt_format,
     run_dir, turn, role,
     reasoning_effort=None,
+    empty_response_retries=0,
 ):
+    if (
+        type(empty_response_retries) is not int
+        or not 0 <= empty_response_retries <= 2
+    ):
+        raise ValueError("empty_response_retries must be 0..2")
+
     url, payload = backend.prepare(
         messages, sampling, prompt_format
     )
@@ -219,7 +226,9 @@ def generate_role(
 
         payload["reasoning_effort"] = reasoning_effort
 
-    for attempt in (1, 2):
+    max_attempts = max(2, empty_response_retries + 1)
+
+    for attempt in range(1, max_attempts + 1):
         append(run_dir / "events.jsonl", {
             "type": "request",
             "turn": turn,
@@ -307,19 +316,24 @@ def generate_role(
 
         # Only retry a stopped, reasoning-only response.
         # Never silently promote reasoning into visible RP text.
-        retryable = (
+        retryable_reasoning = (
             status == "reasoning_only"
             and finish == "stop"
             and attempt == 1
         )
+        retryable_empty = (
+            status == "empty_response"
+            and finish == "stop"
+            and attempt <= empty_response_retries
+        )
 
-        if retryable:
+        if retryable_reasoning or retryable_empty:
             append(run_dir / "events.jsonl", {
                 "type": "generation_retry",
                 "turn": turn,
                 "role": role,
                 "attempt": attempt,
-                "reason": "reasoning_only_stop",
+                "reason": status + "_stop",
             })
             continue
 
@@ -345,6 +359,12 @@ def run_simulation(
     scenario = load(scenario_path)
     player = load(player_path)
     config = load(config_path)
+
+    empty_retries = config.get(
+        "runtime", {}
+    ).get("empty_response_retries", 0)
+    if type(empty_retries) is not int or not 0 <= empty_retries <= 2:
+        raise ValueError("empty_response_retries must be 0..2")
 
     backend = make_backend(config)
     if backend.mode not in {"chat", "completion"}:
@@ -492,6 +512,7 @@ def run_simulation(
                     turn,
                     "player",
                     config.get("player_reasoning_effort"),
+                    empty_response_retries=empty_retries,
                 )
 
                 append(
@@ -513,6 +534,7 @@ def run_simulation(
                     turn,
                     "npc",
                     config.get("npc_reasoning_effort"),
+                    empty_response_retries=empty_retries,
                 )
 
                 append(

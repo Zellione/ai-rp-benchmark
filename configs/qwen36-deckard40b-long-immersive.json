@@ -1,0 +1,28 @@
+{
+  "backend": {
+    "name": "llamacpp",
+    "base_url": "http://127.0.0.1:8082",
+    "model": "qwen36-deckard40b",
+    "timeout": 600,
+    "mode": "chat"
+  },
+  "sampling": {
+    "temperature": 1.0,
+    "top_p": 0.95,
+    "top_k": 20,
+    "max_tokens": 8192
+  },
+  "player_sampling": {
+    "temperature": 1.0,
+    "top_p": 0.95,
+    "top_k": 20,
+    "max_tokens": 8192
+  },
+  "prompt_profile": "prompt-profiles/rpbench-immersive-v1.json",
+  "runtime": {
+    "experiment": "npc-first-long-form-rp",
+    "context_policy": "full_history_no_summarization",
+    "server_context_tokens": 65536,
+    "model_sampling_notes": "Thinking; min_p=0.0 on server"
+  }
+}
