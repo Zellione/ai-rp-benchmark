@@ -1,0 +1,55 @@
+{
+  "schema_version": 2,
+  "id": "world-state-chat-v1",
+  "cases": [
+    {
+      "id": "en-removed-shirt",
+      "language": "en",
+      "scenario": "../../scenarios/character-chemistry/scenario.json",
+      "opening": "*Elara opens the observatory door. Rain rattles against the glass behind her. Her gaze drops to Rowan's soaked T-shirt and the puddle forming beneath his shoes.* \"Come in before you flood the entire hallway.\"",
+      "history": [
+        {
+          "role": "user",
+          "content": "*Rowan steps inside and takes off his wet T-shirt. He hangs it over the back of a wooden chair.* \"Sorry. It is absolutely soaked.\""
+        },
+        {
+          "role": "assistant",
+          "content": "*Elara offers him a clean towel.* \"Dry yourself before you catch cold.\""
+        },
+        {
+          "role": "user",
+          "content": "*Rowan dries his hair with the towel, then drapes the towel over his shoulders.* \"Is the heating still broken?\""
+        },
+        {
+          "role": "assistant",
+          "content": "*Elara glances at the radiator.* \"Only in the west wing. This room is warm.\""
+        },
+        {
+          "role": "user",
+          "content": "*Rowan moves closer to the window, leaving his T-shirt on the chair.* \"The storm looks worse than I expected.\""
+        },
+        {
+          "role": "assistant",
+          "content": "*Elara checks the window latch.* \"The road may be flooded by midnight.\""
+        },
+        {
+          "role": "user",
+          "content": "*Rowan turns toward the desk.* \"Do you still keep the weather logs?\""
+        },
+        {
+          "role": "assistant",
+          "content": "*Elara points to a notebook beside the telescope controls.* \"Right there.\""
+        },
+        {
+          "role": "user",
+          "content": "*Rowan stays by the window, the towel still around his shoulders.* \"What did the last storm damage?\""
+        },
+        {
+          "role": "assistant",
+          "content": "*Elara studies the rain.* \"Mostly the roof above the archives.\""
+        }
+      ],
+      "player": "*Rowan brushes a few drops of water from his shoulder and looks back at Elara.* \"Could you show me the damaged section?\""
+    }
+  ]
+}

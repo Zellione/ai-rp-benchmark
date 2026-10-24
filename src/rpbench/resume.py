@@ -133,6 +133,12 @@ def _sync_transcript(root, manifest, entries):
         "Mode: Goal-driven self-play\n\n"
     )
 
+    npc_opening = manifest["scenario"].get("npc_opening")
+    if npc_opening is not None:
+        if not isinstance(npc_opening, str) or not npc_opening.strip():
+            raise ValueError("Invalid archived NPC opening")
+        expected += f"## NPC Opening\n\n{npc_opening}\n\n"
+
     for index in range(complete_turns):
         player = entries[index * 2]
         npc = entries[index * 2 + 1]
@@ -181,6 +187,7 @@ def _histories(manifest, entries):
         manifest["rendered_player_system_prompt"],
         manifest["rendered_npc_system_prompt"],
         opening,
+        manifest["scenario"].get("npc_opening"),
     )
 
     for entry in entries:

@@ -163,7 +163,9 @@ def apply_prompt_profile(player_prompt, npc_prompt, config, config_path):
     }
 
 
-def make_histories(player_prompt, npc_prompt, opening):
+def make_histories(
+    player_prompt, npc_prompt, opening, npc_opening=None
+):
     # Each side gets its own system prompt and role perspective.
     npc_messages = [
         {"role": "system", "content": npc_prompt},
@@ -172,6 +174,20 @@ def make_histories(player_prompt, npc_prompt, opening):
         {"role": "system", "content": player_prompt},
         {"role": "user", "content": opening},
     ]
+
+    if npc_opening is not None:
+        if (
+            not isinstance(npc_opening, str)
+            or not npc_opening.strip()
+        ):
+            raise ValueError("npc_opening must be nonempty")
+
+        npc_messages.append({
+            "role": "assistant",
+            "content": npc_opening,
+        })
+        player_messages[1]["content"] = npc_opening
+
     return player_messages, npc_messages
 
 
@@ -377,8 +393,9 @@ def run_simulation(
     else:
         completion_info = None
 
+    npc_opening = scenario.get("npc_opening")
     player_messages, npc_messages = make_histories(
-        player_prompt, npc_prompt, opening
+        player_prompt, npc_prompt, opening, npc_opening
     )
 
     timestamp = datetime.now(timezone.utc).strftime(
@@ -455,7 +472,12 @@ def run_simulation(
         transcript.write_text(
             f"# {scenario.get('title', name)}\n\n"
             f"Player: {player['name']}\n\n"
-            f"Mode: Goal-driven self-play\n\n",
+            f"Mode: Goal-driven self-play\n\n"
+            + (
+                f"## NPC Opening\n\n{npc_opening}\n\n"
+                if npc_opening is not None
+                else ""
+            ),
             encoding="utf-8",
         )
 

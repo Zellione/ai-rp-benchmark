@@ -131,5 +131,124 @@ class NpcABTests(unittest.TestCase):
             run(self.cases, self.config, output)
 
 
+    def write_rp_chat_case(self):
+        self.cases.write_text(
+            json.dumps({
+                "schema_version": 2,
+                "cases": [{
+                    "id": "shirt-state",
+                    "language": "en",
+                    "scenario": "scenario.json",
+                    "opening": (
+                        "*Elara opens the door.* "
+                        "\\\"Come inside. You are soaked.\\\""
+                    ),
+                    "history": [
+                        {
+                            "role": "user",
+                            "content": (
+                                "*Rowan takes off his wet T-shirt "
+                                "and hangs it over a chair.*"
+                            ),
+                        },
+                        {
+                            "role": "assistant",
+                            "content": (
+                                "*Elara offers him a dry towel.*"
+                            ),
+                        },
+                        {
+                            "role": "user",
+                            "content": (
+                                "*Rowan dries his hair with the towel.*"
+                            ),
+                        },
+                        {
+                            "role": "assistant",
+                            "content": (
+                                "*Elara returns to her notebook.*"
+                            ),
+                        },
+                    ],
+                    "player": (
+                        "*Rowan looks at the rain.* "
+                        "\\\"Is it getting worse?\\\""
+                    ),
+                }],
+            }),
+            encoding="utf-8",
+        )
+
+    def test_rp_chat_has_npc_opening_and_no_summary(self):
+        self.write_rp_chat_case()
+
+        path, cases = read_cases(self.cases)
+        config = json.loads(self.config.read_text())
+        specs = build_specs(path, cases, self.config, config)
+
+        messages = specs[0]["payload"]["messages"]
+
+        self.assertEqual(
+            [message["role"] for message in messages],
+            [
+                "system",
+                "assistant",
+                "user",
+                "assistant",
+                "user",
+                "assistant",
+                "user",
+            ],
+        )
+        self.assertIn(
+            "takes off his wet T-shirt",
+            messages[2]["content"],
+        )
+        self.assertEqual(
+            messages[-1]["content"],
+            cases[0]["player"],
+        )
+
+    def test_rp_chat_rejects_context_summary(self):
+        self.write_rp_chat_case()
+        data = json.loads(self.cases.read_text())
+        data["cases"][0]["context"] = (
+            "Rowan already removed his shirt."
+        )
+        self.cases.write_text(json.dumps(data))
+
+        with self.assertRaisesRegex(
+            ValueError, "prohibits context summaries"
+        ):
+            read_cases(self.cases)
+
+    def test_rp_chat_rejects_invalid_opening(self):
+        self.write_rp_chat_case()
+        data = json.loads(self.cases.read_text())
+        data["cases"][0]["opening"] = ""
+        self.cases.write_text(json.dumps(data))
+
+        with self.assertRaisesRegex(
+            ValueError, "missing NPC opening"
+        ):
+            read_cases(self.cases)
+
+    def test_rp_chat_resumes(self):
+        self.write_rp_chat_case()
+        output = self.root / "rp-chat-output"
+
+        run(self.cases, self.config, output)
+        original = (
+            output / "cases" / "001.json"
+        ).read_bytes()
+        run(self.cases, self.config, output)
+
+        self.assertEqual(
+            original,
+            (output / "cases" / "001.json").read_bytes(),
+        )
+
+
+
 if __name__ == "__main__":
     unittest.main()

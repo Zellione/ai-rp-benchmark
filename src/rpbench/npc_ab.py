@@ -36,8 +36,13 @@ def read_cases(path):
     path = Path(path).resolve()
     data = load(path)
 
-    if not isinstance(data, dict) or data.get("schema_version") != 1:
+    if (
+        not isinstance(data, dict)
+        or data.get("schema_version") not in {1, 2}
+    ):
         raise ValueError("Unsupported NPC A/B case set")
+
+    schema_version = data["schema_version"]
 
     cases = data.get("cases")
     if not isinstance(cases, list) or not cases:
@@ -61,14 +66,40 @@ def read_cases(path):
         if not isinstance(case.get("scenario"), str):
             raise ValueError(f"{cid}: missing scenario")
 
-        for key in ("context", "player"):
-            if (
-                not isinstance(case.get(key), str)
-                or not case[key].strip()
-            ):
-                raise ValueError(f"{cid}: missing {key}")
+        if (
+            not isinstance(case.get("player"), str)
+            or not case["player"].strip()
+        ):
+            raise ValueError(f"{cid}: missing player")
 
         history = case.get("history", [])
+
+        if schema_version == 1:
+            if (
+                not isinstance(case.get("context"), str)
+                or not case["context"].strip()
+            ):
+                raise ValueError(f"{cid}: missing context")
+            initial_role = "user"
+            expected_odd = "assistant"
+            if "opening" in case:
+                raise ValueError(
+                    f"{cid}: v1 must not contain opening"
+                )
+        else:
+            if "context" in case:
+                raise ValueError(
+                    f"{cid}: v2 prohibits context summaries"
+                )
+            if (
+                not isinstance(case.get("opening"), str)
+                or not case["opening"].strip()
+            ):
+                raise ValueError(
+                    f"{cid}: missing NPC opening"
+                )
+            initial_role = "user"
+            expected_odd = "assistant"
 
         if (
             not isinstance(history, list)
@@ -76,7 +107,9 @@ def read_cases(path):
             or any(
                 not isinstance(message, dict)
                 or message.get("role") != (
-                    "user" if index % 2 == 0 else "assistant"
+                    initial_role
+                    if index % 2 == 0
+                    else expected_odd
                 )
                 or not isinstance(message.get("content"), str)
                 or not message["content"].strip()
@@ -119,11 +152,23 @@ def build_case_messages(case, cases_path, config_path, config):
         config_path,
     )
 
-    # The entire context is fixed in the case definition.
-    # Outputs from other test cases never enter this history.
+    # Legacy cases use a synthetic context message.
+    # RP-realistic cases begin with an NPC-authored opening.
+    # Neither format reuses generated answers from other cases.
+    if "opening" in case:
+        initial = {
+            "role": "assistant",
+            "content": case["opening"],
+        }
+    else:
+        initial = {
+            "role": "user",
+            "content": case["context"],
+        }
+
     return [
         {"role": "system", "content": npc_prompt},
-        {"role": "user", "content": case["context"]},
+        initial,
         *case.get("history", []),
         {"role": "user", "content": case["player"]},
     ]
