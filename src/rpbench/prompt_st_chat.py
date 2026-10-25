@@ -14,6 +14,7 @@ from .prompt_presets import (
     DEFAULT_CHARACTER_ID,
     SillyTavernChatPreset,
 )
+from .prompt_injections import ChatInjection, apply_chat_injections
 
 
 def _expand_names(
@@ -37,10 +38,11 @@ def render_st_chat_preset(
     character_id: int = DEFAULT_CHARACTER_ID,
     config: ChatPromptConfig | None = None,
 ) -> list[dict[str, str]]:
-    """Render a supported subset of a SillyTavern chat preset.
+    """Render the supported SillyTavern chat-preset subset.
 
-    Dynamic markers must be supplied explicitly. Empty marker values
-    are allowed and omitted. In-chat injections are not supported.
+    Relative prompts follow Prompt Manager ordering. In-chat
+    prompts are injected into the original history at their
+    configured depth, independent of manager ordering.
     """
     if not isinstance(character_name, str) or not character_name.strip():
         raise ValueError("character_name must be nonempty")
@@ -53,7 +55,8 @@ def render_st_chat_preset(
 
     ordered = preset.ordered_prompts(character_id)
 
-    messages: list[PromptMessage] = []
+    injections: list[ChatInjection] = []
+    relative: list[tuple[str, PromptMessage | None]] = []
     history_count = 0
 
     for item in ordered:
@@ -64,7 +67,7 @@ def render_st_chat_preset(
 
         if identifier == "chatHistory":
             history_count += 1
-            messages.extend(history)
+            relative.append(("history", None))
             continue
 
         if item.get("marker", False):
@@ -72,15 +75,9 @@ def render_st_chat_preset(
                 raise ValueError(
                     f"Missing active SillyTavern marker: {identifier}"
                 )
-
             content = marker_content[identifier]
         else:
             content = item.get("content", "")
-
-            if item.get("position") == 1:
-                raise ValueError(
-                    f"In-chat injection not supported: {identifier}"
-                )
 
         if not isinstance(content, str):
             raise ValueError(
@@ -96,15 +93,50 @@ def render_st_chat_preset(
             user_name,
         )
 
-        # Official marker prompts generally omit role and default
-        # to system. Other roles must be explicitly declared.
         role = item.get("role", "system")
+        position = item.get("injection_position", 0)
 
-        messages.append(PromptMessage(role, content))
+        if type(position) is not int or position not in (0, 1):
+            raise ValueError(
+                f"Unsupported injection position: {identifier}"
+            )
+
+        if position == 1:
+            if item.get("marker", False):
+                raise ValueError(
+                    f"In-chat marker not supported: {identifier}"
+                )
+
+            injections.append(
+                ChatInjection(
+                    identifier=identifier,
+                    role=role,
+                    content=content,
+                    depth=item.get("injection_depth", 0),
+                    order=item.get("injection_order", 100),
+                )
+            )
+        else:
+            relative.append(
+                ("message", PromptMessage(role, content))
+            )
 
     if history_count != 1:
         raise ValueError(
             "Exactly one active chatHistory marker required"
         )
+
+    injected_history = apply_chat_injections(
+        history,
+        injections,
+    )
+
+    messages: list[PromptMessage] = []
+
+    for kind, message in relative:
+        if kind == "history":
+            messages.extend(injected_history)
+        else:
+            messages.append(message)
 
     return render_chat_prompt([], messages, config)
