@@ -241,7 +241,14 @@ class Backend:
         if self.mode != "completion":
             raise ValueError(f"Unsupported mode: {self.mode}")
         style = prompt_format.get("style")
-        if style == "rp_dialogue_v1":
+        if style == "st_instruct_v1":
+            from .prompt_st_completion import (
+                render_st_completion_prompt,
+            )
+            prompt = render_st_completion_prompt(
+                messages, prompt_format
+            )
+        elif style == "rp_dialogue_v1":
             prompt = roleplay_raw_prompt(messages, prompt_format)
         elif style == "native_turns_v1":
             prompt = native_turn_prompt(messages, prompt_format)

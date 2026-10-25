@@ -28,6 +28,68 @@ def resolve_completion_preset(
     ).resolve()
     preset = load(path)
 
+    if preset.get("style") == "st_instruct_v1":
+        from .prompt_st_completion import (
+            render_st_completion_prompt,
+        )
+
+        if len(cards) != 1:
+            raise ValueError(
+                "ST instruct preset requires exactly one NPC card"
+            )
+
+        if not isinstance(preset.get("id"), str) or not preset["id"].strip():
+            raise ValueError("ST instruct preset requires an ID")
+
+        player_name = player["name"]
+        npc_name = cards[0][1]["name"]
+
+        if (
+            not isinstance(player_name, str)
+            or not player_name.strip()
+            or not isinstance(npc_name, str)
+            or not npc_name.strip()
+            or player_name == npc_name
+        ):
+            raise ValueError("Invalid ST completion speaker names")
+
+        shared = {
+            "style": "st_instruct_v1",
+            "context_preset": preset["context_preset"],
+            "instruct_preset": preset["instruct_preset"],
+        }
+
+        if "story_values" in preset:
+            shared["story_values"] = preset["story_values"]
+
+        npc_format = {
+            **shared,
+            "user_name": player_name,
+            "character_name": npc_name,
+        }
+        player_format = {
+            **shared,
+            "user_name": npc_name,
+            "character_name": player_name,
+        }
+
+        # Fail before creating a run if this preset is outside
+        # our supported text-only SillyTavern subset.
+        for fmt in (npc_format, player_format):
+            render_st_completion_prompt(
+                [{"role": "system", "content": "Validation context"}],
+                fmt,
+            )
+
+        provenance = {
+            "id": preset["id"],
+            "path": str(path),
+            "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
+            "content": preset,
+        }
+
+        return npc_format, player_format, provenance
+
     if preset.get("style") == "native_turns_v1":
         required = [
             "begin", "turn_start", "role_separator",
