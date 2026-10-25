@@ -28,6 +28,32 @@ def _expand_names(
     )
 
 
+def _squash_plain_system_messages(
+    messages: list[dict[str, str]],
+) -> list[dict[str, str]]:
+    """Merge adjacent plain system messages with newline separators.
+
+    Supported subset of SillyTavern ChatCompletion.squashSystemMessages.
+    Internal control-message identifiers and named messages are not
+    represented by RPBench's current text-only message type.
+    """
+    result: list[dict[str, str]] = []
+
+    for message in messages:
+        current = message.copy()
+
+        if (
+            result
+            and current["role"] == "system"
+            and result[-1]["role"] == "system"
+        ):
+            result[-1]["content"] += "\n" + current["content"]
+        else:
+            result.append(current)
+
+    return result
+
+
 def render_st_chat_preset(
     preset: SillyTavernChatPreset,
     history: Sequence[PromptMessage],
@@ -37,6 +63,7 @@ def render_st_chat_preset(
     user_name: str,
     character_id: int = DEFAULT_CHARACTER_ID,
     config: ChatPromptConfig | None = None,
+    squash_system_messages: bool = False,
 ) -> list[dict[str, str]]:
     """Render the supported SillyTavern chat-preset subset.
 
@@ -52,6 +79,9 @@ def render_st_chat_preset(
 
     if not isinstance(marker_content, Mapping):
         raise ValueError("marker_content must be a mapping")
+
+    if not isinstance(squash_system_messages, bool):
+        raise ValueError("squash_system_messages must be boolean")
 
     ordered = preset.ordered_prompts(character_id)
 
@@ -139,4 +169,9 @@ def render_st_chat_preset(
         else:
             messages.append(message)
 
-    return render_chat_prompt([], messages, config)
+    rendered = render_chat_prompt([], messages, config)
+
+    if squash_system_messages:
+        return _squash_plain_system_messages(rendered)
+
+    return rendered
