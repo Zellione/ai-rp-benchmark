@@ -22,6 +22,10 @@ from .completion_response import (
     parse_atem_thinking_prefill,
 )
 from .sampling import validate_sampling
+from .simulation_st_config import (
+    load_st_npc_config,
+    render_st_npc_request,
+)
 from .state import (
     build_ground_truth,
     initial_state,
@@ -433,6 +437,17 @@ def run_simulation(
     else:
         completion_info = None
 
+    npc_renderer = load_st_npc_config(
+        config.get("runtime", {}),
+        config_path,
+        npc_prompt,
+    )
+
+    if npc_renderer is not None and backend.mode != "chat":
+        raise ValueError(
+            "st_chat_npc requires a chat-completion backend"
+        )
+
     npc_opening = scenario.get("npc_opening")
     player_messages, npc_messages = make_histories(
         player_prompt, npc_prompt, opening, npc_opening,
@@ -505,6 +520,9 @@ def run_simulation(
             ),
         }
 
+        if npc_renderer is not None:
+            manifest["npc_renderer"] = npc_renderer
+
         dump(run_dir / "manifest.json", manifest)
 
         ground_truth = build_ground_truth(
@@ -553,7 +571,10 @@ def run_simulation(
 
                 npc_text = generate_role(
                     backend,
-                    npc_messages,
+                    render_st_npc_request(
+                        npc_messages,
+                        npc_renderer,
+                    ) if npc_renderer is not None else npc_messages,
                     sampling,
                     prompt_format,
                     run_dir,

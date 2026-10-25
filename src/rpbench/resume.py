@@ -18,6 +18,7 @@ from .simulation import (
     make_histories,
 )
 from .state import make_observation
+from .simulation_st_config import render_st_npc_request
 
 
 def _now():
@@ -321,6 +322,12 @@ def _resume_simulation_locked(run_dir, turns=None):
         manifest, entries
     )
 
+    npc_renderer = manifest.get("npc_renderer")
+    if npc_renderer is not None and backend.mode != "chat":
+        raise ValueError(
+            "Archived st_chat_npc requires a chat backend"
+        )
+
     empty_retries = manifest.get(
         "runtime", {}
     ).get("empty_response_retries", 0)
@@ -365,7 +372,10 @@ def _resume_simulation_locked(run_dir, turns=None):
 
             npc_text = generate_role(
                 backend,
-                npc_messages,
+                render_st_npc_request(
+                    npc_messages,
+                    npc_renderer,
+                ) if npc_renderer is not None else npc_messages,
                 sampling,
                 prompt_format,
                 root,
