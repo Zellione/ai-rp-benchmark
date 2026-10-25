@@ -18,6 +18,7 @@ from .simulation import (
     make_histories,
 )
 from .state import make_observation
+from .player_controller import render_controlled_player_request
 from .simulation_st_config import render_st_npc_request
 
 
@@ -328,6 +329,18 @@ def _resume_simulation_locked(run_dir, turns=None):
             "Archived st_chat_npc requires a chat backend"
         )
 
+    controlled_player = manifest.get(
+        "runtime", {}
+    ).get("controlled_player", False)
+
+    if type(controlled_player) is not bool:
+        raise ValueError("Invalid archived controlled_player option")
+
+    player_state = (
+        load(root / "state.json")
+        if controlled_player else None
+    )
+
     empty_retries = manifest.get(
         "runtime", {}
     ).get("empty_response_retries", 0)
@@ -350,7 +363,10 @@ def _resume_simulation_locked(run_dir, turns=None):
             else:
                 player_text = generate_role(
                     backend,
-                    player_messages,
+                    render_controlled_player_request(
+                        player_messages,
+                        player_state,
+                    ) if controlled_player else player_messages,
                     player_sampling,
                     player_format,
                     root,

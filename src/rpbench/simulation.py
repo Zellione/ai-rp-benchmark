@@ -22,6 +22,7 @@ from .completion_response import (
     parse_atem_thinking_prefill,
 )
 from .sampling import validate_sampling
+from .player_controller import render_controlled_player_request
 from .simulation_st_config import (
     load_st_npc_config,
     render_st_npc_request,
@@ -384,6 +385,13 @@ def run_simulation(
     player = load(player_path)
     config = load(config_path)
 
+    controlled_player = config.get(
+        "runtime", {}
+    ).get("controlled_player", False)
+
+    if type(controlled_player) is not bool:
+        raise ValueError("runtime.controlled_player must be boolean")
+
     empty_retries = config.get(
         "runtime", {}
     ).get("empty_response_retries", 0)
@@ -549,7 +557,10 @@ def run_simulation(
             for turn in range(1, turns + 1):
                 player_text = generate_role(
                     backend,
-                    player_messages,
+                    render_controlled_player_request(
+                        player_messages,
+                        state,
+                    ) if controlled_player else player_messages,
                     player_sampling,
                     player_format,
                     run_dir,
