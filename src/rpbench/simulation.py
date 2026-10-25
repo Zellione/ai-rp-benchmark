@@ -23,6 +23,10 @@ from .completion_response import (
 )
 from .sampling import validate_sampling
 from .player_controller import render_controlled_player_request
+from .evaluator_runtime import (
+    validate_evaluator_config,
+    reconcile_evaluations,
+)
 from .player_knowledge import (
     initial_player_knowledge,
     update_player_knowledge,
@@ -407,6 +411,14 @@ def run_simulation(
     else:
         player_knowledge = None
 
+    evaluator_settings = validate_evaluator_config(
+        config.get("runtime", {}).get("semantic_evaluator")
+    )
+    if evaluator_settings is not None and not controlled_player:
+        raise ValueError(
+            "semantic_evaluator requires controlled_player"
+        )
+
     empty_retries = config.get(
         "runtime", {}
     ).get("empty_response_retries", 0)
@@ -622,7 +634,16 @@ def run_simulation(
                     make_observation(turn, "npc", npc_text),
                 )
 
-                if controlled_player:
+                if evaluator_settings is not None:
+                    from .observations import read_jsonl
+                    observations = read_jsonl(
+                        run_dir / "observations.jsonl"
+                    )
+                    player_knowledge = reconcile_evaluations(
+                        run_dir, player, observations, state,
+                        knowledge_rules, evaluator_settings,
+                    )
+                elif controlled_player:
                     player_knowledge = update_player_knowledge(
                         player_knowledge,
                         turn,

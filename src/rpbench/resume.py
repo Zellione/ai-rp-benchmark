@@ -19,6 +19,10 @@ from .simulation import (
 )
 from .state import make_observation
 from .player_controller import render_controlled_player_request
+from .evaluator_runtime import (
+    validate_evaluator_config,
+    reconcile_evaluations,
+)
 from .player_knowledge import (
     replay_player_knowledge,
     update_player_knowledge,
@@ -365,6 +369,19 @@ def _resume_simulation_locked(run_dir, turns=None):
         knowledge_rules = []
         player_knowledge = None
 
+    evaluator_settings = validate_evaluator_config(
+        manifest.get("runtime", {}).get("semantic_evaluator")
+    )
+    if evaluator_settings is not None:
+        if not controlled_player:
+            raise ValueError(
+                "Archived evaluator requires controlled_player"
+            )
+        player_knowledge = reconcile_evaluations(
+            root, manifest["player"], entries, player_state,
+            knowledge_rules, evaluator_settings,
+        )
+
     empty_retries = manifest.get(
         "runtime", {}
     ).get("empty_response_retries", 0)
@@ -432,7 +449,13 @@ def _resume_simulation_locked(run_dir, turns=None):
             append(root / "observations.jsonl", entry)
             entries.append(entry)
 
-            if controlled_player:
+            if evaluator_settings is not None:
+                player_knowledge = reconcile_evaluations(
+                    root, manifest["player"], entries,
+                    player_state, knowledge_rules,
+                    evaluator_settings,
+                )
+            elif controlled_player:
                 player_knowledge = update_player_knowledge(
                     player_knowledge,
                     turn,
