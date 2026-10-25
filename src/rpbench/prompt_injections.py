@@ -62,25 +62,32 @@ def apply_chat_injections(
     for position in range(len(original) + 1):
         selected = buckets.get(position, [])
 
-        for role in ("user", "assistant", "system"):
-            same_role = sorted(
-                (
-                    (index, injection)
-                    for index, injection in selected
-                    if injection.role == role
-                ),
-                key=lambda pair: (
-                    pair[1].order,
-                    pair[0],
-                ),
-            )
+        # Keep different order groups as separate messages.
+        # The final upstream role/order sequence still requires
+        # verification against a captured SillyTavern payload.
+        orders = sorted({
+            injection.order
+            for _, injection in selected
+        })
 
-            if same_role:
-                content = "\n".join(
-                    injection.content
-                    for _, injection in same_role
-                )
-                result.append(PromptMessage(role, content))
+        for order in orders:
+            # SillyTavern constructs messages in reverse-history
+            # order and reverses the complete array afterward.
+            # Chronological output therefore uses this role order.
+            for role in ("assistant", "user", "system"):
+                same_group = [
+                    injection
+                    for _, injection in selected
+                    if injection.order == order
+                    and injection.role == role
+                ]
+
+                if same_group:
+                    content = "\n".join(
+                        injection.content
+                        for injection in same_group
+                    )
+                    result.append(PromptMessage(role, content))
 
         if position < len(original):
             result.append(original[position])

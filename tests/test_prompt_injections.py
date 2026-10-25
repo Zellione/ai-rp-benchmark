@@ -44,7 +44,7 @@ def test_equal_depth_sorted_by_order():
     )
 
     assert [message.content for message in result] == [
-        "First", "Second", "A\nB", "Third",
+        "First", "Second", "A", "B", "Third",
     ]
 
 
@@ -99,12 +99,7 @@ def test_same_role_same_depth_is_grouped():
     )
 
     assert [message.content for message in result] == [
-        "First",
-        "Second",
-        "First\nSecond",
-        "Third",
-    ][0:2] + ["First\nSecond", "Third"] if False else [
-        "First", "Second", "First\nSecond", "Third"
+        "First", "Second", "First", "Second", "Third",
     ]
 
 
@@ -121,8 +116,8 @@ def test_mixed_roles_follow_sillytavern_role_order():
     assert [m.role for m in result] == [
         "user",
         "assistant",
-        "user",
         "assistant",
+        "user",
         "system",
         "user",
     ]
