@@ -1,0 +1,29 @@
+{
+  "backend": {
+    "name": "llamacpp",
+    "base_url": "http://127.0.0.1:8082",
+    "model": "midnight-miqu70b",
+    "timeout": 600,
+    "mode": "chat"
+  },
+  "sampling": {
+    "temperature": 1.0,
+    "top_p": 1.0,
+    "top_k": 0,
+    "max_tokens": 2048
+  },
+  "player_sampling": {
+    "temperature": 1.0,
+    "top_p": 1.0,
+    "top_k": 0,
+    "max_tokens": 2048
+  },
+  "prompt_profile": "prompt-profiles/rpbench-immersive-v1.json",
+  "runtime": {
+    "experiment": "npc-first-long-form-rp",
+    "context_policy": "full_history_no_summarization",
+    "server_context_tokens": 32764,
+    "empty_response_retries": 2,
+    "model_notes": "Midnight-Miqu Q3_K_S; layer split 65:35; Q8_0 KV; newline Vicuna; server min_p=0.20, repeat_penalty=1.05, repeat_last_n=2800; smoothing disabled"
+  }
+}

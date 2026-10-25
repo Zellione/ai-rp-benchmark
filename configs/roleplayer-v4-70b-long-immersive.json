@@ -1,0 +1,29 @@
+{
+  "backend": {
+    "name": "llamacpp",
+    "base_url": "http://127.0.0.1:8082",
+    "model": "roleplayer-v4-70b",
+    "timeout": 600,
+    "mode": "chat"
+  },
+  "sampling": {
+    "temperature": 0.9,
+    "top_p": 0.95,
+    "top_k": 40,
+    "max_tokens": 2048
+  },
+  "player_sampling": {
+    "temperature": 0.9,
+    "top_p": 0.95,
+    "top_k": 40,
+    "max_tokens": 2048
+  },
+  "prompt_profile": "prompt-profiles/rpbench-immersive-v1.json",
+  "runtime": {
+    "experiment": "npc-first-long-form-rp",
+    "context_policy": "full_history_no_summarization",
+    "server_context_tokens": 32768,
+    "empty_response_retries": 2,
+    "model_notes": "RolePlayer V4 LLaMa 70B Q4_K_S; Llama chat template; layer split 65:35; Q8_0 K/V cache"
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "backend": {
+    "name": "llamacpp",
+    "base_url": "http://127.0.0.1:8082",
+    "model": "mistral-small-3.2-24b",
+    "timeout": 600,
+    "mode": "chat"
+  },
+  "sampling": {
+    "temperature": 1.0,
+    "top_p": 0.95,
+    "max_tokens": 2048
+  },
+  "player_sampling": {
+    "temperature": 1.0,
+    "top_p": 0.95,
+    "max_tokens": 2048
+  },
+  "prompt_profile": "prompt-profiles/rpbench-immersive-v1.json",
+  "runtime": {
+    "experiment": "npc-first-long-form-rp",
+    "context_policy": "full_history_no_summarization",
+    "server_context_tokens": 32768,
+    "empty_response_retries": 2,
+    "model_notes": "Mistral Small 3.2 24B Instruct Q6_K_L; llama.cpp; RTX 5090; 32K context; Q8_0 KV; no context shift",
+    "npc_opening_strict_alternation": true
+  }
+}

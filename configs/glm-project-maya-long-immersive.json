@@ -1,0 +1,28 @@
+{
+  "backend": {
+    "name": "strata",
+    "base_url": "http://127.0.0.1:8080",
+    "model": "glm-5.3-flash",
+    "mode": "chat",
+    "timeout": 1200,
+    "verified_openai_api": true
+  },
+  "sampling": {
+    "temperature": 1.0,
+    "top_p": 0.95,
+    "max_tokens": 2048
+  },
+  "player_sampling": {
+    "temperature": 1.0,
+    "top_p": 0.95,
+    "max_tokens": 2048
+  },
+  "prompt_profile": "prompt-profiles/rpbench-immersive-v1.json",
+  "runtime": {
+    "experiment": "npc-first-long-form-rp",
+    "context_policy": "full_history_no_summarization",
+    "server_context_tokens": 32768,
+    "empty_response_retries": 2,
+    "model_notes": "GLM-5.3-Flash Maya-S-v2-IQ2_XXS; Project Maya v1.1.5; dual GPU; KV streaming on; reasoning_effort low"
+  }
+}

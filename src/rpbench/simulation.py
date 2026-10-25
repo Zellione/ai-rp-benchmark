@@ -164,7 +164,9 @@ def apply_prompt_profile(player_prompt, npc_prompt, config, config_path):
 
 
 def make_histories(
-    player_prompt, npc_prompt, opening, npc_opening=None
+    player_prompt, npc_prompt, opening, npc_opening=None,
+    strict_alternation=False,
+    user_filler=None,
 ):
     # Each side gets its own system prompt and role perspective.
     npc_messages = [
@@ -181,6 +183,24 @@ def make_histories(
             or not npc_opening.strip()
         ):
             raise ValueError("npc_opening must be nonempty")
+
+        if user_filler is not None:
+            if (
+                not isinstance(user_filler, str)
+                or not user_filler.strip()
+            ):
+                raise ValueError(
+                    "SillyTavern user filler must be nonempty text"
+                )
+            npc_messages.append({
+                "role": "user",
+                "content": user_filler,
+            })
+        elif strict_alternation:
+            npc_messages.append({
+                "role": "user",
+                "content": opening,
+            })
 
         npc_messages.append({
             "role": "assistant",
@@ -415,7 +435,13 @@ def run_simulation(
 
     npc_opening = scenario.get("npc_opening")
     player_messages, npc_messages = make_histories(
-        player_prompt, npc_prompt, opening, npc_opening
+        player_prompt, npc_prompt, opening, npc_opening,
+        strict_alternation=config.get(
+            "runtime", {}
+        ).get("npc_opening_strict_alternation", False),
+        user_filler=config.get("runtime", {})
+        .get("sillytavern_chat_v1", {})
+        .get("user_filler"),
     )
 
     timestamp = datetime.now(timezone.utc).strftime(

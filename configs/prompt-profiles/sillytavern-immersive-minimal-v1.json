@@ -1,0 +1,11 @@
+{
+  "id": "sillytavern-immersive-minimal-v1",
+  "description": "Minimal RPBench adaptation of SillyTavern's Roleplay - Immersive system prompt. No Collaborative profile rules are inherited.",
+  "source": "https://github.com/SillyTavern/SillyTavern/blob/develop/default/content/presets/sysprompt/Roleplay%20-%20Immersive.json",
+  "player_rules": [
+    "Continue the roleplay as the player character."
+  ],
+  "npc_rules": [
+    "Produce exactly one roleplay continuation of one to four paragraphs. Respect the player's control over their own speech and actions. Describe the character's behavior, feelings and surroundings with immersive, concrete details and varied, expressive prose. Remain in character."
+  ]
+}

@@ -188,6 +188,12 @@ def _histories(manifest, entries):
         manifest["rendered_npc_system_prompt"],
         opening,
         manifest["scenario"].get("npc_opening"),
+        strict_alternation=manifest.get(
+            "runtime", {}
+        ).get("npc_opening_strict_alternation", False),
+        user_filler=manifest.get("runtime", {})
+        .get("sillytavern_chat_v1", {})
+        .get("user_filler"),
     )
 
     for entry in entries:

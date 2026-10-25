@@ -1,0 +1,14 @@
+{%- for message in messages %}
+{%- if message['role'] == 'system' %}
+{{- 'SYSTEM:\n' + message['content'] + '\n' }}
+{%- elif message['role'] == 'user' %}
+{{- 'USER:\n' + message['content'] + '\n' }}
+{%- elif message['role'] == 'assistant' %}
+{{- 'ASSISTANT:\n' + message['content'] + '\n' }}
+{%- else %}
+{{- raise_exception('Unsupported role') }}
+{%- endif %}
+{%- endfor %}
+{%- if add_generation_prompt %}
+{{- 'ASSISTANT:\n' }}
+{%- endif %}

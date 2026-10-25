@@ -10,3 +10,8 @@ requires-python = ">=3.10"
 rpbench = "rpbench.cli:main"
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+]

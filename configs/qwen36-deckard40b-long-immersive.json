@@ -23,6 +23,7 @@
     "experiment": "npc-first-long-form-rp",
     "context_policy": "full_history_no_summarization",
     "server_context_tokens": 65536,
-    "model_sampling_notes": "Thinking; min_p=0.0 on server"
+    "model_sampling_notes": "Thinking; min_p=0.0 on server",
+    "empty_response_retries": 2
   }
 }
