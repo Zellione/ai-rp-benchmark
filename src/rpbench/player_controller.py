@@ -2,6 +2,8 @@
 
 from collections.abc import Mapping
 
+from .player_knowledge import format_player_knowledge
+
 
 def select_player_goal(state: Mapping) -> dict | None:
     """Select an active goal, otherwise the first pending goal.
@@ -71,7 +73,7 @@ def build_controlled_player_instruction(state: Mapping) -> str:
 
 
 
-def render_controlled_player_request(messages, state):
+def render_controlled_player_request(messages, state, knowledge=None):
     """Add current goal guidance to a request without mutating history."""
     if (
         not isinstance(messages, (list, tuple))
@@ -83,6 +85,10 @@ def render_controlled_player_request(messages, state):
         raise ValueError("Invalid player request history")
 
     guidance = build_controlled_player_instruction(state)
+
+    if knowledge is not None:
+        guidance += "\n\n" + format_player_knowledge(knowledge)
+
     result = [dict(message) for message in messages]
     result[0]["content"] += "\n\n" + guidance
     return result

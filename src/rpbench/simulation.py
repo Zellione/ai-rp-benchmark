@@ -23,6 +23,11 @@ from .completion_response import (
 )
 from .sampling import validate_sampling
 from .player_controller import render_controlled_player_request
+from .player_knowledge import (
+    initial_player_knowledge,
+    update_player_knowledge,
+    validate_knowledge_rules,
+)
 from .simulation_st_config import (
     load_st_npc_config,
     render_st_npc_request,
@@ -392,6 +397,16 @@ def run_simulation(
     if type(controlled_player) is not bool:
         raise ValueError("runtime.controlled_player must be boolean")
 
+    knowledge_rules = config.get(
+        "runtime", {}
+    ).get("player_knowledge_rules", [])
+
+    if controlled_player:
+        validate_knowledge_rules(knowledge_rules)
+        player_knowledge = initial_player_knowledge(player)
+    else:
+        player_knowledge = None
+
     empty_retries = config.get(
         "runtime", {}
     ).get("empty_response_retries", 0)
@@ -540,6 +555,12 @@ def run_simulation(
         dump(run_dir / "ground_truth.json", ground_truth)
         dump(run_dir / "state.json", state)
 
+        if controlled_player:
+            dump(
+                run_dir / "player_knowledge.json",
+                player_knowledge,
+            )
+
         transcript = run_dir / "conversation.md"
         transcript.write_text(
             f"# {scenario.get('title', name)}\n\n"
@@ -560,6 +581,7 @@ def run_simulation(
                     render_controlled_player_request(
                         player_messages,
                         state,
+                        player_knowledge,
                     ) if controlled_player else player_messages,
                     player_sampling,
                     player_format,
@@ -599,6 +621,18 @@ def run_simulation(
                     run_dir / "observations.jsonl",
                     make_observation(turn, "npc", npc_text),
                 )
+
+                if controlled_player:
+                    player_knowledge = update_player_knowledge(
+                        player_knowledge,
+                        turn,
+                        npc_text,
+                        knowledge_rules,
+                    )
+                    dump(
+                        run_dir / "player_knowledge.json",
+                        player_knowledge,
+                    )
 
                 # Reverse conversational roles for the player
                 # perspective. Never insert the NPC system prompt.

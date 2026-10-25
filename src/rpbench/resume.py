@@ -19,6 +19,11 @@ from .simulation import (
 )
 from .state import make_observation
 from .player_controller import render_controlled_player_request
+from .player_knowledge import (
+    replay_player_knowledge,
+    update_player_knowledge,
+    validate_knowledge_rules,
+)
 from .simulation_st_config import render_st_npc_request
 
 
@@ -341,6 +346,25 @@ def _resume_simulation_locked(run_dir, turns=None):
         if controlled_player else None
     )
 
+    if controlled_player:
+        knowledge_rules = manifest.get(
+            "runtime", {}
+        ).get("player_knowledge_rules", [])
+        validate_knowledge_rules(knowledge_rules)
+
+        player_knowledge = replay_player_knowledge(
+            manifest["player"],
+            entries,
+            knowledge_rules,
+        )
+        dump(
+            root / "player_knowledge.json",
+            player_knowledge,
+        )
+    else:
+        knowledge_rules = []
+        player_knowledge = None
+
     empty_retries = manifest.get(
         "runtime", {}
     ).get("empty_response_retries", 0)
@@ -366,6 +390,7 @@ def _resume_simulation_locked(run_dir, turns=None):
                     render_controlled_player_request(
                         player_messages,
                         player_state,
+                        player_knowledge,
                     ) if controlled_player else player_messages,
                     player_sampling,
                     player_format,
@@ -406,6 +431,18 @@ def _resume_simulation_locked(run_dir, turns=None):
             )
             append(root / "observations.jsonl", entry)
             entries.append(entry)
+
+            if controlled_player:
+                player_knowledge = update_player_knowledge(
+                    player_knowledge,
+                    turn,
+                    npc_text,
+                    knowledge_rules,
+                )
+                dump(
+                    root / "player_knowledge.json",
+                    player_knowledge,
+                )
 
             player_messages.extend([
                 {"role": "assistant", "content": player_text},
