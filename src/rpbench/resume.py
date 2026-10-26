@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+from copy import deepcopy
 import json
 import os
 from datetime import datetime, timezone
@@ -235,13 +236,25 @@ def _histories(manifest, entries):
     return player_messages, npc_messages
 
 
-def resume_simulation(run_dir, turns=None):
+def resume_simulation(
+    run_dir, turns=None,
+    evaluator_max_tokens=None,
+    evaluator_attempts=None,
+):
     root = Path(run_dir).resolve()
     with run_lock(root):
-        return _resume_simulation_locked(root, turns)
+        return _resume_simulation_locked(
+            root, turns,
+            evaluator_max_tokens=evaluator_max_tokens,
+            evaluator_attempts=evaluator_attempts,
+        )
 
 
-def _resume_simulation_locked(run_dir, turns=None):
+def _resume_simulation_locked(
+    run_dir, turns=None,
+    evaluator_max_tokens=None,
+    evaluator_attempts=None,
+):
     root = Path(run_dir).resolve()
     manifest_path = root / "manifest.json"
     manifest = load(manifest_path)
@@ -369,6 +382,44 @@ def _resume_simulation_locked(run_dir, turns=None):
     else:
         knowledge_rules = []
         player_knowledge = None
+
+    if (
+        evaluator_max_tokens is not None
+        or evaluator_attempts is not None
+    ):
+        current = manifest.get(
+            "runtime", {}
+        ).get("semantic_evaluator")
+
+        if current is None or current.get("mode") != "llm":
+            raise ValueError(
+                "Evaluator overrides require an LLM evaluator"
+            )
+
+        candidate = deepcopy(current)
+
+        if evaluator_max_tokens is not None:
+            if (
+                type(evaluator_max_tokens) is not int
+                or not 1 <= evaluator_max_tokens <= 131072
+            ):
+                raise ValueError("Invalid evaluator max_tokens")
+            candidate["sampling"]["max_tokens"] = evaluator_max_tokens
+
+        if evaluator_attempts is not None:
+            candidate["max_attempts"] = evaluator_attempts
+
+        validate_evaluator_config(candidate)
+
+        if candidate != current:
+            append(events_path, {
+                "type": "evaluator_config_override_v1",
+                "previous": current,
+                "updated": candidate,
+                "timestamp": _now(),
+            })
+            manifest["runtime"]["semantic_evaluator"] = candidate
+            dump(manifest_path, manifest)
 
     evaluator_settings = validate_evaluator_config(
         manifest.get("runtime", {}).get("semantic_evaluator")
@@ -530,9 +581,16 @@ def main():
     )
     parser.add_argument("--run", required=True)
     parser.add_argument("--turns", type=int)
+    parser.add_argument("--evaluator-max-tokens", type=int)
+    parser.add_argument("--evaluator-attempts", type=int)
     args = parser.parse_args()
 
-    print(resume_simulation(args.run, args.turns))
+    print(resume_simulation(
+        args.run,
+        args.turns,
+        evaluator_max_tokens=args.evaluator_max_tokens,
+        evaluator_attempts=args.evaluator_attempts,
+    ))
 
 
 if __name__ == "__main__":

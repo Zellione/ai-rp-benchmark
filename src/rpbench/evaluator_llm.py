@@ -50,7 +50,30 @@ Rules:
 """
 
 
-def evaluate_llm(npc_text, state, knowledge, settings):
+
+def parse_evaluator_json(text):
+    """Accept plain JSON or one complete fenced JSON block."""
+    if not isinstance(text, str):
+        raise ValueError("Evaluator content must be text")
+
+    content = text.strip()
+
+    if content.startswith("```"):
+        lines = content.splitlines()
+
+        if (
+            len(lines) >= 3
+            and lines[0].strip().lower() in {"```", "```json"}
+            and lines[-1].strip() == "```"
+        ):
+            content = "\n".join(lines[1:-1])
+        # Any malformed fence remains intact and will be
+        # rejected by json.loads().
+
+    return json.loads(content)
+
+
+def evaluate_llm(npc_text, state, knowledge, settings, on_response=None):
     """Generate and validate a semantic evaluation proposal."""
     backend_cfg = settings["backend"]
     sampling = settings["sampling"]
@@ -106,8 +129,16 @@ def evaluate_llm(npc_text, state, knowledge, settings):
         or ""
     )
 
+    if on_response is not None:
+        on_response({
+            "content": text,
+            "reasoning": reasoning,
+            "finish_reason": finish_reason,
+            "usage": usage,
+        })
+
     try:
-        result = json.loads(text)
+        result = parse_evaluator_json(text)
     except json.JSONDecodeError as exc:
         raise ValueError(
             "Evaluator returned invalid JSON; "

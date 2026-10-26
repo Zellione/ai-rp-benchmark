@@ -3,7 +3,7 @@
 from copy import deepcopy
 from hashlib import sha256
 
-from .core import dump
+from .core import append, dump
 from .evaluator_llm import evaluate_llm
 from .sampling import validate_sampling
 from .evaluation_journal import (
@@ -26,10 +26,14 @@ def validate_evaluator_config(settings):
         if set(settings) != {"mode", "id", "rules"}:
             raise ValueError("Invalid mock evaluator configuration")
     elif mode == "llm":
-        if set(settings) != {
-            "mode", "id", "backend", "sampling"
-        }:
+        if set(settings) - {
+            "mode", "id", "backend", "sampling", "max_attempts"
+        } or not {"mode", "id", "backend", "sampling"} <= set(settings):
             raise ValueError("Invalid LLM evaluator configuration")
+
+        attempts = settings.get("max_attempts", 1)
+        if type(attempts) is not int or not 1 <= attempts <= 3:
+            raise ValueError("Evaluator max_attempts must be 1..3")
 
         backend = settings["backend"]
         if not isinstance(backend, dict) or not (
@@ -177,12 +181,58 @@ def reconcile_evaluations(
                     prior_knowledge["facts"].append(item)
                     known.add(item["fact"])
 
-            proposal = evaluate_llm(
-                observation["text"],
-                goal_state,
-                prior_knowledge,
-                settings,
-            )
+            max_attempts = settings.get("max_attempts", 1)
+
+            for attempt in range(1, max_attempts + 1):
+                captured = {}
+
+                def capture(response):
+                    captured.update(response)
+
+                try:
+                    proposal = evaluate_llm(
+                        observation["text"],
+                        goal_state,
+                        prior_knowledge,
+                        settings,
+                        on_response=capture,
+                    )
+
+                    # Authoritative journal validation happens here.
+                    # Invalid evidence must not enter player knowledge.
+                    event = append_evaluation(
+                        path, turn, observation["text"], goal_state,
+                        proposal, settings["id"], observations,
+                    )
+
+                except ValueError as error:
+                    append(path, {
+                        "type": "player_evaluation_attempt_v1",
+                        "turn": turn,
+                        "evaluator_id": settings["id"],
+                        "attempt": attempt,
+                        "max_attempts": max_attempts,
+                        "status": "rejected",
+                        "error": str(error),
+                        "raw_response": captured or None,
+                    })
+                    if attempt == max_attempts:
+                        raise
+                else:
+                    append(path, {
+                        "type": "player_evaluation_attempt_v1",
+                        "turn": turn,
+                        "evaluator_id": settings["id"],
+                        "attempt": attempt,
+                        "max_attempts": max_attempts,
+                        "status": "accepted",
+                        "finish_reason": captured.get("finish_reason"),
+                        "usage": captured.get("usage"),
+                    })
+                    existing[turn] = event
+                    break
+
+            continue
 
         event = append_evaluation(
             path, turn, observation["text"], goal_state,
