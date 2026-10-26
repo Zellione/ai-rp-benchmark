@@ -47,6 +47,11 @@ Return exactly one JSON object:
 Rules:
 - Evaluate only the goal and criteria supplied in the request.
 - Include one result for every supplied criterion.
+- Conversation turns are numbered starting at 1. Turn 0 is invalid.
+- For satisfied or partial, source_turns must contain at least
+  one valid existing NPC turn number.
+- For not_satisfied, use source_turns: [] when no supporting
+  event exists. Never invent a source.
 - Cite existing conversation turns, not fabricated quotes.
 - The player requesting access is not the same as receiving it.
 - A public document is not a restricted document.

@@ -184,13 +184,17 @@ def validate_semantic_proposal(
         turns = item["source_turns"]
         reason = item["reason"]
 
+        minimum_sources = (
+            0 if status == "not_satisfied" else 1
+        )
+
         if (
             not isinstance(turns, list)
-            or not 1 <= len(turns) <= 20
-            or len(set(map(str, turns))) != len(turns)
+            or not minimum_sources <= len(turns) <= 20
+            or any(type(turn) is not int for turn in turns)
+            or len(set(turns)) != len(turns)
             or any(
-                type(turn) is not int
-                or turn < 1
+                turn < 1
                 or turn > current_turn
                 or turn not in sources
                 for turn in turns

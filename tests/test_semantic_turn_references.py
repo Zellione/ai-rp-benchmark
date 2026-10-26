@@ -103,3 +103,51 @@ def test_future_source_turn_rejected():
             DEFINITION, STATE, OBSERVATIONS, "semantic-test",
             goal_id="subgoal-01",
         )
+
+
+def test_not_satisfied_allows_empty_sources():
+    event = make_semantic_event(
+        1,
+        proposal("not_satisfied", turns=()),
+        DEFINITION,
+        STATE,
+        OBSERVATIONS,
+        "semantic-test",
+        goal_id="subgoal-01",
+    )
+
+    progress = replay_semantic_criteria(
+        DEFINITION, STATE, OBSERVATIONS, [event]
+    )
+
+    criterion = progress["goals"]["subgoal-01"][
+        "criteria"
+    ]["voss-role"]
+
+    assert not criterion["proposed_satisfied"]
+
+
+def test_satisfied_requires_source():
+    with pytest.raises(ValueError, match="source turns"):
+        make_semantic_event(
+            1,
+            proposal("satisfied", turns=()),
+            DEFINITION,
+            STATE,
+            OBSERVATIONS,
+            "semantic-test",
+            goal_id="subgoal-01",
+        )
+
+
+def test_zero_source_turn_rejected():
+    with pytest.raises(ValueError, match="source turns"):
+        make_semantic_event(
+            1,
+            proposal("not_satisfied", turns=(0, 1)),
+            DEFINITION,
+            STATE,
+            OBSERVATIONS,
+            "semantic-test",
+            goal_id="subgoal-01",
+        )
