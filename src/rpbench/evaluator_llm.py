@@ -29,11 +29,21 @@ Return one JSON object with exactly two arrays:
 }
 
 Rules:
-- Evidence must be an exact substring of the NPC response.
+- Every evidence field MUST be one exact, contiguous substring
+  copied character-for-character from the latest NPC response.
+- Never abbreviate quotations, insert ellipses, join separate
+  passages, normalize punctuation, or paraphrase evidence.
+- If several passages are needed, make separate knowledge updates.
+- A goal completion must be supported by one sufficient quote.
+  Otherwise do not propose completion.
 - NPC claims are reported information, not verified world truth.
 - Do not repeat information the player already knows.
 - Never infer success from the player's intentions alone.
 - Propose a completed goal only when its full meaning is satisfied.
+- Partial progress is not completion. Knowing that written
+  authorization is required does not necessarily establish who
+  grants it or the complete authorization procedure.
+- Do not complete broad goals based on partial staff information.
 - A mere name mention is not sufficient for a broad objective.
 - Use empty arrays when no meaningful update is supported.
 - Return JSON only, without Markdown.
@@ -84,13 +94,28 @@ def evaluate_llm(npc_text, state, knowledge, settings):
     ]
 
     url, payload = backend.prepare(messages, sampling, {})
-    text, _ = backend.generate(url, payload)
+    text, response = backend.generate(url, payload)
+
+    choice = (response.get("choices") or [{}])[0]
+    message = choice.get("message") or {}
+    finish_reason = choice.get("finish_reason")
+    usage = response.get("usage")
+    reasoning = (
+        message.get("reasoning_content")
+        or message.get("reasoning")
+        or ""
+    )
 
     try:
         result = json.loads(text)
     except json.JSONDecodeError as exc:
         raise ValueError(
-            "Evaluator returned invalid JSON"
+            "Evaluator returned invalid JSON; "
+            f"finish_reason={finish_reason!r}; "
+            f"visible_chars={len(text)}; "
+            f"reasoning_chars={len(reasoning)}; "
+            f"usage={usage!r}; "
+            f"content_preview={text[:300]!r}"
         ) from exc
 
     # The evaluation journal performs the authoritative
