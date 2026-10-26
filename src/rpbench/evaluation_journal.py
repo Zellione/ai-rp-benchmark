@@ -32,7 +32,7 @@ def make_evaluation_event(
         raise ValueError("Missing evaluator ID")
 
     validated = validate_evaluation(
-        proposal, npc_text, state
+        proposal, npc_text, state, turn=turn
     )
 
     return {
@@ -108,19 +108,22 @@ def read_evaluations(events_path, observations, initial_state):
         for item in archived_result["knowledge_updates"]:
             if (
                 not isinstance(item, dict)
-                or set(item) != {
-                    "fact", "evidence", "status"
-                }
-                or item["status"] != "reported"
+                or item.get("status") != "reported"
             ):
-                raise ValueError(
-                    "Invalid archived knowledge proposal"
-                )
+                raise ValueError("Invalid archived knowledge proposal")
 
-            raw_knowledge.append({
-                "fact": item["fact"],
-                "evidence": item["evidence"],
-            })
+            if set(item) == {"fact", "source_turns", "status"}:
+                raw_knowledge.append({
+                    "fact": item["fact"],
+                    "source_turns": item["source_turns"],
+                })
+            elif set(item) == {"fact", "evidence", "status"}:
+                raw_knowledge.append({
+                    "fact": item["fact"],
+                    "evidence": item["evidence"],
+                })
+            else:
+                raise ValueError("Invalid archived knowledge fields")
 
         raw_proposal = {
             "knowledge_updates": raw_knowledge,

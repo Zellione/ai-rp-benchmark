@@ -7,7 +7,7 @@ a claim is true or that a goal has actually been achieved.
 from collections.abc import Mapping
 
 
-def validate_evaluation(result, npc_text, state):
+def validate_evaluation(result, npc_text, state, turn=None):
     if not isinstance(result, Mapping):
         raise ValueError("Evaluator result must be an object")
 
@@ -35,9 +35,31 @@ def validate_evaluation(result, npc_text, state):
     clean_goals = []
 
     for item in knowledge:
-        if not isinstance(item, Mapping) or set(item) != {
-            "fact", "evidence",
-        }:
+        if not isinstance(item, Mapping):
+            raise ValueError("Invalid knowledge proposal")
+
+        if set(item) == {"fact", "source_turns"}:
+            fact = item["fact"]
+            turns = item["source_turns"]
+
+            if not isinstance(fact, str) or not fact.strip():
+                raise ValueError("Empty knowledge fact")
+
+            if (
+                type(turn) is not int
+                or not isinstance(turns, list)
+                or turns != [turn]
+            ):
+                raise ValueError("Invalid knowledge source turn")
+
+            clean_knowledge.append({
+                "fact": fact.strip(),
+                "source_turns": [turn],
+                "status": "reported",
+            })
+            continue
+
+        if set(item) != {"fact", "evidence"}:
             raise ValueError("Invalid knowledge proposal")
 
         fact = item["fact"]

@@ -312,12 +312,19 @@ def test_resume_evaluates_archived_response_once(
 def test_knowledge_only_ignores_goal_proposals(monkeypatch):
     def fake_generate(self, url, payload):
         system = payload["messages"][0]["content"]
-        assert "KNOWLEDGE-ONLY MODE" in system
+        assert "Extract NEW information" in system
+
+        context = json.loads(
+            payload["messages"][1]["content"]
+        )
+        assert context["source_turn"] == 1
 
         text = json.dumps({
             "knowledge_updates": [{
-                "fact": "Director Vale manages the restricted archive.",
-                "evidence": NPC_TEXT,
+                "fact": (
+                    "Director Vale manages the restricted archive."
+                ),
+                "source_turns": [1],
             }],
             "goal_updates": [{
                 "goal_id": "subgoal-01",
@@ -325,6 +332,7 @@ def test_knowledge_only_ignores_goal_proposals(monkeypatch):
                 "evidence": "Fabricated quote",
             }],
         })
+
         return text, {
             "choices": [{
                 "message": {"content": text},
@@ -349,4 +357,4 @@ def test_knowledge_only_ignores_goal_proposals(monkeypatch):
 
     assert result["goal_updates"] == []
     assert len(result["knowledge_updates"]) == 1
-    assert result["knowledge_updates"][0]["evidence"] == NPC_TEXT
+    assert result["knowledge_updates"][0]["source_turns"] == [1]

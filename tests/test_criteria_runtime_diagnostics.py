@@ -166,3 +166,81 @@ def test_failure_archives_raw_thinking(tmp_path, monkeypatch):
     assert event["raw_response"]["finish_reason"] == "length"
     assert event["raw_response"]["usage"]["completion_tokens"] == 8192
     assert not (root / "criteria_progress.json").exists()
+
+
+def test_evaluator_keeps_later_goals_available(monkeypatch):
+    captured = {}
+
+    def fake_generate(self, url, payload):
+        captured.update(json.loads(
+            payload["messages"][1]["content"]
+        ))
+        text = json.dumps({
+            "schema_version": 1,
+            "criterion_updates": [],
+        })
+        return text, {
+            "choices": [{
+                "message": {"content": text},
+                "finish_reason": "stop",
+            }],
+        }
+
+    monkeypatch.setattr(Backend, "generate", fake_generate)
+
+    definition = {
+        "schema_version": 1,
+        "goals": {
+            "subgoal-01": {
+                "criteria": [{
+                    "id": "first",
+                    "description": "First criterion",
+                    "evidence_contains": "first",
+                }],
+            },
+            "subgoal-02": {
+                "criteria": [{
+                    "id": "second",
+                    "description": "Second criterion",
+                    "evidence_contains": "second",
+                }],
+            },
+        },
+    }
+
+    progress = {
+        "goals": {
+            goal_id: {
+                "criteria": {
+                    criterion_id: {
+                        "description": criterion_id,
+                        "proposed_satisfied": False,
+                        "evidence": [],
+                    },
+                },
+                "proposed_satisfied": False,
+            }
+            for goal_id, criterion_id in (
+                ("subgoal-01", "first"),
+                ("subgoal-02", "second"),
+            )
+        },
+    }
+
+    _generate(
+        definition, progress,
+        observations(), settings(),
+        goal_id="subgoal-01",
+    )
+
+    assert captured["active_goal_id"] == "subgoal-01"
+    assert set(captured["open_criteria"]) == {"subgoal-01"}
+
+    _generate(
+        definition, progress,
+        observations(), settings(),
+        goal_id="subgoal-02",
+    )
+
+    assert captured["active_goal_id"] == "subgoal-02"
+    assert set(captured["open_criteria"]) == {"subgoal-02"}

@@ -183,6 +183,8 @@ def reconcile_evaluations(
 
             max_attempts = settings.get("max_attempts", 1)
 
+            repair = None
+
             for attempt in range(1, max_attempts + 1):
                 captured = {}
 
@@ -190,13 +192,16 @@ def reconcile_evaluations(
                     captured.update(response)
 
                 try:
+                    request_settings = dict(settings)
+                    request_settings["_source_turn"] = turn
                     proposal = evaluate_llm(
                         observation["text"],
                         goal_state,
                         prior_knowledge,
-                        settings,
+                        request_settings,
                         on_response=capture,
                         knowledge_only=knowledge_only,
+                        repair=repair,
                     )
 
                     # Authoritative journal validation happens here.
@@ -207,6 +212,14 @@ def reconcile_evaluations(
                     )
 
                 except ValueError as error:
+                    if captured.get("content"):
+                        repair = {
+                            "previous_output": captured["content"],
+                            "error": str(error)[:1000],
+                        }
+                    else:
+                        repair = None
+
                     append(path, {
                         "type": "player_evaluation_attempt_v1",
                         "turn": turn,
@@ -258,14 +271,18 @@ def reconcile_evaluations(
                 fact.encode("utf-8")
             ).hexdigest()[:16]
 
-            facts.append({
+            entry = {
                 "id": f"semantic-{identifier}",
                 "fact": fact,
                 "status": "reported",
                 "source": "semantic_evaluator",
                 "turn": turn,
-                "evidence": item["evidence"],
-            })
+            }
+            if "source_turns" in item:
+                entry["source_turns"] = item["source_turns"]
+            else:
+                entry["evidence"] = item["evidence"]
+            facts.append(entry)
 
     dump(root / "player_knowledge.json", knowledge)
     return knowledge

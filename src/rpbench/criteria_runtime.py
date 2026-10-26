@@ -2,6 +2,8 @@
 
 import json
 import os
+import socket
+import urllib.error
 from pathlib import Path
 
 from .core import Backend, append, dump, load
@@ -16,36 +18,51 @@ from .observations import read_jsonl
 from .state import initial_state
 
 
-INSTRUCTIONS = """Evaluate goal criteria in a fictional roleplay.
+INSTRUCTIONS = """Evaluate ONE roleplay goal semantically.
 
-Return exactly this JSON structure:
+Consider what the player actually did and what the NPC
+actually communicated. Paraphrases and implied information
+can count when the meaning is unambiguous.
+
+For each supplied criterion, decide:
+- satisfied: fully achieved
+- partial: meaningful progress, not yet achieved
+- not_satisfied: not achieved or insufficient information
+
+Return exactly one JSON object:
+
 {
   "schema_version": 1,
   "criterion_updates": [
     {
-      "goal_id": "existing goal id",
-      "criterion_id": "existing criterion id",
-      "status": "satisfied",
-      "evidence": [{"turn": 1, "quote": "exact NPC substring"}]
+      "goal_id": "existing goal ID",
+      "criterion_id": "existing criterion ID",
+      "status": "partial",
+      "source_turns": [1],
+      "reason": "Concise semantic justification"
     }
   ]
 }
 
 Rules:
-- Only report criteria fully supported by dialogue evidence.
-- Quotes must be exact contiguous substrings of NPC messages.
-- Cite the correct NPC turn number.
-- For NEW updates, cite only the latest NPC turn.
-- Previous evidence is already recorded in existing_progress.
-- Never invent criterion IDs, dialogue, or evidence.
-- Partial progress is not satisfaction.
-- Do not repeat already satisfied criteria.
-- If nothing new is satisfied, return an empty array.
-- Return JSON only.
+- Evaluate only the goal and criteria supplied in the request.
+- Include one result for every supplied criterion.
+- Cite existing conversation turns, not fabricated quotes.
+- The player requesting access is not the same as receiving it.
+- A public document is not a restricted document.
+- Hypothetical actions are not completed actions.
+- NPC claims are not necessarily objective world truth.
+- If uncertain, choose partial or not_satisfied.
+- A negative result is a valid successful evaluation.
+- Never invent criterion IDs or turn numbers.
+- Return only JSON, without Markdown.
 """
 
 
-def _generate(definition, progress, observations, settings, on_response=None):
+def _generate(
+    definition, progress, observations, settings,
+    on_response=None, goal_id=None,
+):
     backend_cfg = settings["backend"]
     backend = Backend(
         name=backend_cfg["name"],
@@ -72,23 +89,46 @@ def _generate(definition, progress, observations, settings, on_response=None):
     current = latest[-1]
 
     open_criteria = {}
-    for goal_id, definition_entry in definition["goals"].items():
+
+    targets = (
+        [goal_id]
+        if goal_id is not None
+        else list(definition["goals"])
+    )
+
+    for identifier in targets:
+        if identifier not in definition["goals"]:
+            raise ValueError("Unknown evaluation goal")
+
         pending = [
             {
                 "id": criterion["id"],
                 "description": criterion["description"],
             }
-            for criterion in definition_entry["criteria"]
-            if not progress["goals"][goal_id]["criteria"][
+            for criterion in definition["goals"][identifier]["criteria"]
+            if not progress["goals"][identifier]["criteria"][
                 criterion["id"]
             ]["proposed_satisfied"]
         ]
         if pending:
-            open_criteria[goal_id] = pending
+            open_criteria[identifier] = pending
+
+    # The player action matters for applications, permissions
+    # and actual document examination.
+    player_action = next(
+        (
+            item["text"]
+            for item in reversed(observations)
+            if item["role"] == "player"
+            and item["turn"] == current["turn"]
+        ),
+        None,
+    )
 
     context = {
+        "active_goal_id": goal_id,
         "open_criteria": open_criteria,
-        "existing_progress": progress["goals"],
+        "latest_player_action": player_action,
         "latest_npc_response": {
             "turn": current["turn"],
             "text": current["text"],
@@ -136,11 +176,7 @@ def _generate(definition, progress, observations, settings, on_response=None):
 
 
 def refresh_criteria(root, definition, observations, settings):
-    """Evaluate missing NPC turns, then reconstruct goal state.
-
-    The original goal state is always reconstructed from ground truth.
-    Existing accepted evaluations are never regenerated.
-    """
+    """Evaluate each (turn, goal) independently and resume safely."""
     root = Path(root)
     original = initial_state(load(root / "ground_truth.json"))
     definition = validate_goal_criteria(definition, original)
@@ -152,84 +188,118 @@ def refresh_criteria(root, definition, observations, settings):
         if event.get("type") == EVENT_TYPE
     ]
 
-    # Validates IDs, sources, hashes, duplicate turns and replay.
     _, progress, _ = advance_criteria_goals(
         original, definition, observations, accepted
     )
 
-    accepted_turns = {event["turn"] for event in accepted}
+    checked = set()
+    for event in accepted:
+        if "goal_id" in event:
+            checked.add((event["turn"], event["goal_id"]))
+        else:
+            for identifier in definition["goals"]:
+                checked.add((event["turn"], identifier))
 
     for observation in observations:
         if observation["role"] != "npc":
             continue
 
         turn = observation["turn"]
-        if turn in accepted_turns:
-            continue
-
         available = [
             entry for entry in observations
             if entry["turn"] <= turn
         ]
 
-        max_attempts = settings.get("max_attempts", 1)
+        for goal_id in definition["goals"]:
+            if (turn, goal_id) in checked:
+                continue
 
-        for attempt in range(1, max_attempts + 1):
-            captured = {}
+            # A fully satisfied goal need not be checked again.
+            if progress["goals"][goal_id]["proposed_satisfied"]:
+                continue
 
-            def capture(response):
-                captured.update(response)
+            if all(
+                item["proposed_satisfied"]
+                for item in progress["goals"][goal_id][
+                    "criteria"
+                ].values()
+            ):
+                continue
 
-            try:
-                proposal, metadata = _generate(
-                    definition, progress, available, settings,
-                    on_response=capture,
-                )
-                for update in proposal.get("criterion_updates", []):
-                    for reference in update.get("evidence", []):
-                        if reference.get("turn") != turn:
-                            raise ValueError(
-                                "New criteria evidence must cite "
-                                "the current NPC turn"
-                            )
+            max_attempts = settings.get("max_attempts", 1)
 
-                event = make_semantic_event(
-                    turn, proposal, definition, original,
-                    available, settings["id"],
-                )
-            except ValueError as error:
-                append(events_path, {
-                    "type": "criteria_attempt",
-                    "turn": turn,
-                    "attempt": attempt,
-                    "status": "rejected",
-                    "error": str(error),
-                    "raw_response": captured or None,
-                })
-                if attempt == max_attempts:
-                    raise
-            else:
-                append(events_path, event)
-                append(events_path, {
-                    "type": "criteria_attempt",
-                    "turn": turn,
-                    "attempt": attempt,
-                    "status": "accepted",
-                    "usage": metadata["usage"],
-                    "finish_reason": metadata["finish_reason"],
-                })
-                accepted.append(event)
-                accepted_turns.add(turn)
-                _, progress, _ = advance_criteria_goals(
-                    original, definition, observations, accepted
-                )
-                break
+            for attempt in range(1, max_attempts + 1):
+                captured = {}
+
+                def capture(response):
+                    captured.update(response)
+
+                try:
+                    proposal, metadata = _generate(
+                        definition, progress, available, settings,
+                        on_response=capture,
+                        goal_id=goal_id,
+                    )
+
+                    if not isinstance(proposal, dict):
+                        raise ValueError("Invalid criteria result")
+
+                    for update in proposal.get(
+                        "criterion_updates", []
+                    ):
+                        for reference in update.get(
+                            "evidence", []
+                        ):
+                            if reference.get("turn") != turn:
+                                raise ValueError(
+                                    "New evidence must cite current turn"
+                                )
+
+                    event = make_semantic_event(
+                        turn, proposal, definition, original,
+                        available, settings["id"],
+                        goal_id=goal_id,
+                    )
+
+                except (
+                    ValueError,
+                    TimeoutError,
+                    socket.timeout,
+                    urllib.error.URLError,
+                ) as error:
+                    append(events_path, {
+                        "type": "criteria_attempt",
+                        "turn": turn,
+                        "goal_id": goal_id,
+                        "attempt": attempt,
+                        "status": "rejected",
+                        "error": str(error),
+                        "raw_response": captured or None,
+                    })
+                    if attempt == max_attempts:
+                        raise
+                else:
+                    append(events_path, event)
+                    append(events_path, {
+                        "type": "criteria_attempt",
+                        "turn": turn,
+                        "goal_id": goal_id,
+                        "attempt": attempt,
+                        "status": "accepted",
+                        "usage": metadata["usage"],
+                        "finish_reason": metadata["finish_reason"],
+                    })
+
+                    accepted.append(event)
+                    checked.add((turn, goal_id))
+                    _, progress, _ = advance_criteria_goals(
+                        original, definition, observations, accepted
+                    )
+                    break
 
     state, progress, transitions = advance_criteria_goals(
         original, definition, observations, accepted
     )
-
     dump(root / "state.json", state)
     dump(root / "criteria_progress.json", progress)
-
     return state, progress, transitions

@@ -150,7 +150,7 @@ def test_live_criteria_and_resume(tmp_path, monkeypatch):
 
     resume_simulation(root, turns=3)
 
-    assert len(criteria_calls) == 3
+    assert len(criteria_calls) == 2
     assert len(npc_calls) == 3
 
     assert (
@@ -162,11 +162,11 @@ def test_live_criteria_and_resume(tmp_path, monkeypatch):
     assert len([
         item for item in events
         if item.get("type") == "semantic_criteria_v1"
-    ]) == 3
+    ]) == 2
 
     assert load(root / "manifest.json")["status"] == "complete"
 
     # Replaying a completed run must not regenerate evaluations.
     resume_simulation(root, turns=3)
-    assert len(criteria_calls) == 3
+    assert len(criteria_calls) == 2
     assert len(npc_calls) == 3

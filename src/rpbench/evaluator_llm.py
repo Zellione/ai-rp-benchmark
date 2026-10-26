@@ -76,6 +76,7 @@ def parse_evaluator_json(text):
 def evaluate_llm(
     npc_text, state, knowledge, settings,
     on_response=None, knowledge_only=False,
+    repair=None,
 ):
     """Generate and validate a semantic evaluation proposal."""
     backend_cfg = settings["backend"]
@@ -108,11 +109,24 @@ def evaluate_llm(
 
     instructions = EVALUATOR_INSTRUCTIONS
     if knowledge_only:
-        instructions += (
-            "\nKNOWLEDGE-ONLY MODE:\n"
-            "Extract information, but do NOT evaluate goal completion.\n"
-            "Always return an empty goal_updates array.\n"
-        )
+        context["source_turn"] = settings.get("_source_turn", 1)
+        instructions = """Extract NEW information the player learns from the latest NPC response.
+
+Return JSON:
+{
+  "knowledge_updates": [
+    {"fact": "Concise semantic paraphrase", "source_turns": [1]}
+  ],
+  "goal_updates": []
+}
+
+The actual turn number is provided as source_turn in the input.
+NPC statements are reported claims, not necessarily world truth.
+Preserve uncertainty, attribution, and corrections.
+Paraphrasing is encouraged. Do not copy exact quotations.
+Omit redundant or unsupported facts.
+Return JSON only.
+"""
 
     messages = [
         {
@@ -126,6 +140,23 @@ def evaluate_llm(
             ),
         },
     ]
+
+    if repair is not None:
+        messages.append({
+            "role": "assistant",
+            "content": repair["previous_output"],
+        })
+        messages.append({
+            "role": "user",
+            "content": (
+                "Your previous JSON was rejected: "
+                + repair["error"]
+                + "\\nReturn a corrected complete JSON object. "
+                "Every evidence quote must be copied exactly "
+                "from latest_npc_response. Remove unsupported "
+                "items rather than inventing quotes."
+            ),
+        })
 
     url, payload = backend.prepare(messages, sampling, {})
     text, response = backend.generate(url, payload)
