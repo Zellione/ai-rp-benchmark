@@ -23,6 +23,10 @@ from .completion_response import (
 )
 from .sampling import validate_sampling
 from .player_controller import render_controlled_player_request
+from .goal_progress import (
+    validate_goal_rules,
+    refresh_goal_progress,
+)
 from .evaluator_runtime import (
     validate_evaluator_config,
     reconcile_evaluations,
@@ -419,6 +423,18 @@ def run_simulation(
             "semantic_evaluator requires controlled_player"
         )
 
+    goal_rules = config.get(
+        "runtime", {}
+    ).get("goal_approval_rules", [])
+
+    if goal_rules and (
+        not controlled_player or evaluator_settings is None
+    ):
+        raise ValueError(
+            "goal_approval_rules requires controlled_player "
+            "and semantic_evaluator"
+        )
+
     empty_retries = config.get(
         "runtime", {}
     ).get("empty_response_retries", 0)
@@ -493,6 +509,14 @@ def run_simulation(
         .get("sillytavern_chat_v1", {})
         .get("user_filler"),
     )
+
+    if goal_rules:
+        preflight_state = initial_state(
+            build_ground_truth(
+                player, [card for _, card in loaded_cards]
+            )
+        )
+        validate_goal_rules(goal_rules, preflight_state)
 
     timestamp = datetime.now(timezone.utc).strftime(
         "%Y%m%dT%H%M%S%fZ"
@@ -643,6 +667,10 @@ def run_simulation(
                         run_dir, player, observations, state,
                         knowledge_rules, evaluator_settings,
                     )
+                    if goal_rules:
+                        state, _ = refresh_goal_progress(
+                            run_dir, observations, goal_rules
+                        )
                 elif controlled_player:
                     player_knowledge = update_player_knowledge(
                         player_knowledge,

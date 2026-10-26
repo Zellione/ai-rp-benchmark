@@ -17,8 +17,9 @@ from .simulation import (
     make_backend,
     make_histories,
 )
-from .state import make_observation
+from .state import make_observation, initial_state
 from .player_controller import render_controlled_player_request
+from .goal_progress import refresh_goal_progress
 from .evaluator_runtime import (
     validate_evaluator_config,
     reconcile_evaluations,
@@ -372,14 +373,36 @@ def _resume_simulation_locked(run_dir, turns=None):
     evaluator_settings = validate_evaluator_config(
         manifest.get("runtime", {}).get("semantic_evaluator")
     )
+
+    # Archived evaluator proposals must be validated against
+    # the original goal state, not the approved live state.
+    evaluation_base_state = (
+        initial_state(load(root / "ground_truth.json"))
+        if evaluator_settings is not None else None
+    )
     if evaluator_settings is not None:
         if not controlled_player:
             raise ValueError(
                 "Archived evaluator requires controlled_player"
             )
         player_knowledge = reconcile_evaluations(
-            root, manifest["player"], entries, player_state,
+            root, manifest["player"], entries,
+            evaluation_base_state,
             knowledge_rules, evaluator_settings,
+        )
+
+    goal_rules = manifest.get(
+        "runtime", {}
+    ).get("goal_approval_rules", [])
+
+    if goal_rules and evaluator_settings is None:
+        raise ValueError(
+            "Archived goal approval requires an evaluator"
+        )
+
+    if goal_rules:
+        player_state, _ = refresh_goal_progress(
+            root, entries, goal_rules
         )
 
     empty_retries = manifest.get(
@@ -452,9 +475,13 @@ def _resume_simulation_locked(run_dir, turns=None):
             if evaluator_settings is not None:
                 player_knowledge = reconcile_evaluations(
                     root, manifest["player"], entries,
-                    player_state, knowledge_rules,
+                    evaluation_base_state, knowledge_rules,
                     evaluator_settings,
                 )
+                if goal_rules:
+                    player_state, _ = refresh_goal_progress(
+                        root, entries, goal_rules
+                    )
             elif controlled_player:
                 player_knowledge = update_player_knowledge(
                     player_knowledge,
