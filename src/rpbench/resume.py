@@ -440,18 +440,38 @@ def _resume_simulation_locked(
             root, manifest["player"], entries,
             evaluation_base_state,
             knowledge_rules, evaluator_settings,
+            knowledge_only=manifest.get(
+                "runtime", {}
+            ).get("goal_criteria") is not None,
         )
 
     goal_rules = manifest.get(
         "runtime", {}
     ).get("goal_approval_rules", [])
 
+    criteria_definition = manifest.get(
+        "runtime", {}
+    ).get("goal_criteria")
+
+    if criteria_definition is not None and (
+        not controlled_player
+        or evaluator_settings is None
+        or goal_rules
+    ):
+        raise ValueError("Invalid archived goal_criteria configuration")
+
     if goal_rules and evaluator_settings is None:
         raise ValueError(
             "Archived goal approval requires an evaluator"
         )
 
-    if goal_rules:
+    if criteria_definition is not None:
+        from .criteria_runtime import refresh_criteria
+        player_state, _, _ = refresh_criteria(
+            root, criteria_definition,
+            entries, evaluator_settings,
+        )
+    elif goal_rules:
         player_state, _ = refresh_goal_progress(
             root, entries, goal_rules
         )
@@ -482,6 +502,10 @@ def _resume_simulation_locked(
                         player_messages,
                         player_state,
                         player_knowledge,
+                        load(root / "criteria_progress.json")
+                        if criteria_definition is not None
+                        and (root / "criteria_progress.json").exists()
+                        else None,
                     ) if controlled_player else player_messages,
                     player_sampling,
                     player_format,
@@ -528,8 +552,15 @@ def _resume_simulation_locked(
                     root, manifest["player"], entries,
                     evaluation_base_state, knowledge_rules,
                     evaluator_settings,
+                    knowledge_only=criteria_definition is not None,
                 )
-                if goal_rules:
+                if criteria_definition is not None:
+                    from .criteria_runtime import refresh_criteria
+                    player_state, _, _ = refresh_criteria(
+                        root, criteria_definition,
+                        entries, evaluator_settings,
+                    )
+                elif goal_rules:
                     player_state, _ = refresh_goal_progress(
                         root, entries, goal_rules
                     )

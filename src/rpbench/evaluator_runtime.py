@@ -128,7 +128,7 @@ def mock_evaluate(npc_text, settings):
 
 def reconcile_evaluations(
     root, player, observations, goal_state,
-    knowledge_rules, settings,
+    knowledge_rules, settings, knowledge_only=False,
 ):
     """Restore evaluations and player knowledge from durable journals.
 
@@ -196,6 +196,7 @@ def reconcile_evaluations(
                         prior_knowledge,
                         settings,
                         on_response=capture,
+                        knowledge_only=knowledge_only,
                     )
 
                     # Authoritative journal validation happens here.

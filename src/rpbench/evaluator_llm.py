@@ -73,7 +73,10 @@ def parse_evaluator_json(text):
     return json.loads(content)
 
 
-def evaluate_llm(npc_text, state, knowledge, settings, on_response=None):
+def evaluate_llm(
+    npc_text, state, knowledge, settings,
+    on_response=None, knowledge_only=False,
+):
     """Generate and validate a semantic evaluation proposal."""
     backend_cfg = settings["backend"]
     sampling = settings["sampling"]
@@ -103,10 +106,18 @@ def evaluate_llm(npc_text, state, knowledge, settings, on_response=None):
         "latest_npc_response": npc_text,
     }
 
+    instructions = EVALUATOR_INSTRUCTIONS
+    if knowledge_only:
+        instructions += (
+            "\nKNOWLEDGE-ONLY MODE:\n"
+            "Extract information, but do NOT evaluate goal completion.\n"
+            "Always return an empty goal_updates array.\n"
+        )
+
     messages = [
         {
             "role": "system",
-            "content": EVALUATOR_INSTRUCTIONS,
+            "content": instructions,
         },
         {
             "role": "user",
@@ -148,6 +159,11 @@ def evaluate_llm(npc_text, state, knowledge, settings, on_response=None):
             f"usage={usage!r}; "
             f"content_preview={text[:300]!r}"
         ) from exc
+
+    if knowledge_only and isinstance(result, dict):
+        # The dedicated criteria evaluator owns all goal decisions.
+        # Only the knowledge portion enters the legacy journal.
+        result["goal_updates"] = []
 
     # The evaluation journal performs the authoritative
     # validation and normalization before persisting.

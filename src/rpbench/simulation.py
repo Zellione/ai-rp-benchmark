@@ -427,6 +427,22 @@ def run_simulation(
         "runtime", {}
     ).get("goal_approval_rules", [])
 
+    criteria_definition = config.get(
+        "runtime", {}
+    ).get("goal_criteria")
+
+    if criteria_definition is not None:
+        if not controlled_player or evaluator_settings is None:
+            raise ValueError(
+                "goal_criteria requires controlled_player "
+                "and semantic_evaluator"
+            )
+        if goal_rules:
+            raise ValueError(
+                "goal_criteria and goal_approval_rules "
+                "cannot be combined"
+            )
+
     if goal_rules and (
         not controlled_player or evaluator_settings is None
     ):
@@ -588,6 +604,12 @@ def run_simulation(
             player, [card for _, card in loaded_cards]
         )
         state = initial_state(ground_truth)
+        # Validate archived evaluator proposals against the
+        # original state, never the evolving player state.
+        evaluation_base_state = initial_state(ground_truth)
+        if criteria_definition is not None:
+            from .goal_criteria import validate_goal_criteria
+            validate_goal_criteria(criteria_definition, state)
         dump(run_dir / "ground_truth.json", ground_truth)
         dump(run_dir / "state.json", state)
 
@@ -618,6 +640,10 @@ def run_simulation(
                         player_messages,
                         state,
                         player_knowledge,
+                        load(run_dir / "criteria_progress.json")
+                        if criteria_definition is not None
+                        and (run_dir / "criteria_progress.json").exists()
+                        else None,
                     ) if controlled_player else player_messages,
                     player_sampling,
                     player_format,
@@ -664,10 +690,18 @@ def run_simulation(
                         run_dir / "observations.jsonl"
                     )
                     player_knowledge = reconcile_evaluations(
-                        run_dir, player, observations, state,
+                        run_dir, player, observations,
+                        evaluation_base_state,
                         knowledge_rules, evaluator_settings,
+                        knowledge_only=criteria_definition is not None,
                     )
-                    if goal_rules:
+                    if criteria_definition is not None:
+                        from .criteria_runtime import refresh_criteria
+                        state, _, _ = refresh_criteria(
+                            run_dir, criteria_definition,
+                            observations, evaluator_settings,
+                        )
+                    elif goal_rules:
                         state, _ = refresh_goal_progress(
                             run_dir, observations, goal_rules
                         )

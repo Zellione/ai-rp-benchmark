@@ -307,3 +307,46 @@ def test_resume_evaluates_archived_response_once(
 
     assert len(evaluations) == 1
     assert load(root / "manifest.json")["status"] == "complete"
+
+
+def test_knowledge_only_ignores_goal_proposals(monkeypatch):
+    def fake_generate(self, url, payload):
+        system = payload["messages"][0]["content"]
+        assert "KNOWLEDGE-ONLY MODE" in system
+
+        text = json.dumps({
+            "knowledge_updates": [{
+                "fact": "Director Vale manages the restricted archive.",
+                "evidence": NPC_TEXT,
+            }],
+            "goal_updates": [{
+                "goal_id": "subgoal-01",
+                "status": "completed",
+                "evidence": "Fabricated quote",
+            }],
+        })
+        return text, {
+            "choices": [{
+                "message": {"content": text},
+                "finish_reason": "stop",
+            }],
+        }
+
+    monkeypatch.setattr(Backend, "generate", fake_generate)
+
+    result = evaluate_llm(
+        NPC_TEXT,
+        {"goals": {
+            "subgoal-01": {
+                "status": "pending",
+                "description": "Find staff",
+            },
+        }},
+        {"facts": []},
+        evaluator_config(),
+        knowledge_only=True,
+    )
+
+    assert result["goal_updates"] == []
+    assert len(result["knowledge_updates"]) == 1
+    assert result["knowledge_updates"][0]["evidence"] == NPC_TEXT

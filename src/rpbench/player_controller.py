@@ -49,7 +49,9 @@ def select_player_goal(state: Mapping) -> dict | None:
     return None
 
 
-def build_controlled_player_instruction(state: Mapping) -> str:
+def build_controlled_player_instruction(
+    state: Mapping, criteria_progress=None
+) -> str:
     """Return goal guidance; never assert unverified success."""
     goal = select_player_goal(state)
 
@@ -61,7 +63,7 @@ def build_controlled_player_instruction(state: Mapping) -> str:
             "unverified success."
         )
 
-    return (
+    guidance = (
         "CONTROLLED PLAYER OBJECTIVE:\n"
         f"Current intermediate goal: {goal['description']}\n"
         "Use the actual NPC response to choose your next action.\n"
@@ -71,9 +73,30 @@ def build_controlled_player_instruction(state: Mapping) -> str:
         "Keep pursuing the broader goal without rushing."
     )
 
+    if criteria_progress is not None:
+        entry = criteria_progress.get(
+            "goals", {}
+        ).get(goal["id"])
+
+        if entry is not None:
+            missing = [
+                item["description"]
+                for item in entry["criteria"].values()
+                if not item["proposed_satisfied"]
+            ]
+            if missing:
+                guidance += (
+                    "\nStill unresolved:\n"
+                    + "\n".join(f"- {item}" for item in missing)
+                )
+
+    return guidance
 
 
-def render_controlled_player_request(messages, state, knowledge=None):
+
+def render_controlled_player_request(
+    messages, state, knowledge=None, criteria_progress=None
+):
     """Add current goal guidance to a request without mutating history."""
     if (
         not isinstance(messages, (list, tuple))
@@ -84,7 +107,9 @@ def render_controlled_player_request(messages, state, knowledge=None):
     ):
         raise ValueError("Invalid player request history")
 
-    guidance = build_controlled_player_instruction(state)
+    guidance = build_controlled_player_instruction(
+        state, criteria_progress
+    )
 
     if knowledge is not None:
         guidance += "\n\n" + format_player_knowledge(knowledge)
