@@ -1,0 +1,213 @@
+{
+  "schema_version": 1,
+  "suite_id": "blackwood-semantic-v1",
+  "cases": [
+    {
+      "id": "voss-cumulative",
+      "goal_id": "subgoal-01",
+      "criterion_id": "voss-role",
+      "description": "Learn that Alden Voss is the curator responsible for restricted-access authorization.",
+      "expected_status": "satisfied",
+      "required_source_turns": [
+        1,
+        2
+      ],
+      "observations": [
+        {
+          "turn": 1,
+          "role": "player",
+          "text": "Elena asks who authorizes restricted access."
+        },
+        {
+          "turn": 1,
+          "role": "npc",
+          "text": "Mara explains: Our curator, Mr. Voss, is responsible for granting restricted-access authorization."
+        },
+        {
+          "turn": 2,
+          "role": "player",
+          "text": "Elena asks to meet Mr. Voss."
+        },
+        {
+          "turn": 2,
+          "role": "npc",
+          "text": "Mara introduces Mr. Voss to Elena. The man behind the desk is Alden Voss."
+        }
+      ],
+      "prior_partials": [
+        {
+          "turn": 1,
+          "reason": "Mr. Voss is the curator and authorizes access, but his full name is not yet established."
+        }
+      ]
+    },
+    {
+      "id": "voss-unrelated",
+      "goal_id": "subgoal-01",
+      "criterion_id": "voss-role",
+      "description": "Learn that Alden Voss is the curator responsible for restricted-access authorization.",
+      "expected_status": "partial",
+      "observations": [
+        {
+          "turn": 1,
+          "role": "player",
+          "text": "Elena asks who authorizes restricted access."
+        },
+        {
+          "turn": 1,
+          "role": "npc",
+          "text": "Mara explains: Our curator, Mr. Voss, is responsible for granting restricted-access authorization."
+        },
+        {
+          "turn": 2,
+          "role": "player",
+          "text": "Elena asks about the public catalog."
+        },
+        {
+          "turn": 2,
+          "role": "npc",
+          "text": "Finn explains how the public manuscripts are indexed."
+        }
+      ],
+      "prior_partials": [
+        {
+          "turn": 1,
+          "reason": "Mr. Voss is identified as curator and authorization authority, but his full name remains unknown."
+        }
+      ]
+    },
+    {
+      "id": "voss-different-person",
+      "goal_id": "subgoal-01",
+      "criterion_id": "voss-role",
+      "description": "Learn that Alden Voss is the curator responsible for restricted-access authorization.",
+      "expected_status": "not_satisfied",
+      "observations": [
+        {
+          "turn": 1,
+          "role": "player",
+          "text": "Elena asks who authorizes restricted access."
+        },
+        {
+          "turn": 1,
+          "role": "npc",
+          "text": "Mara says the curator, Mr. Voss, authorizes restricted access."
+        },
+        {
+          "turn": 2,
+          "role": "player",
+          "text": "Elena asks to meet Alden Voss."
+        },
+        {
+          "turn": 2,
+          "role": "npc",
+          "text": "Mara introduces Alden Voss, the junior conservator. She explicitly explains that he is a different person from the curator Mr. Voss. They merely share a surname."
+        }
+      ],
+      "prior_partials": [
+        {
+          "turn": 1,
+          "reason": "The curator Mr. Voss authorizes access, but his full identity is unknown."
+        }
+      ]
+    },
+    {
+      "id": "voss-retracted",
+      "goal_id": "subgoal-01",
+      "criterion_id": "voss-role",
+      "description": "Learn that Alden Voss is the curator responsible for restricted-access authorization.",
+      "expected_status": "not_satisfied",
+      "observations": [
+        {
+          "turn": 1,
+          "role": "player",
+          "text": "Elena asks who authorizes access."
+        },
+        {
+          "turn": 1,
+          "role": "npc",
+          "text": "Mara says the curator Mr. Voss authorizes restricted access."
+        },
+        {
+          "turn": 2,
+          "role": "player",
+          "text": "Elena asks for confirmation."
+        },
+        {
+          "turn": 2,
+          "role": "npc",
+          "text": "Mara corrects herself: That was outdated. Alden Voss is our historical consultant, not the curator. Director Thorne alone authorizes restricted access."
+        }
+      ],
+      "prior_partials": [
+        {
+          "turn": 1,
+          "reason": "Mr. Voss is identified as curator and authorization authority, but his full name is unknown."
+        }
+      ]
+    },
+    {
+      "id": "authorization-spontaneous",
+      "goal_id": "subgoal-08",
+      "criterion_id": "authorized-access",
+      "description": "Elena receives actual, immediately effective authorization from an official empowered to grant access to restricted Blackwood records. An application, promise or public pass does not suffice.",
+      "expected_status": "satisfied",
+      "required_source_turns": [
+        1
+      ],
+      "observations": [
+        {
+          "turn": 1,
+          "role": "player",
+          "text": "Elena discusses the archive with Director Voss."
+        },
+        {
+          "turn": 1,
+          "role": "npc",
+          "text": "Director Voss, who has final authorization authority, tells Elena: I grant you restricted access effective immediately. You may examine the restricted Blackwood records now, without a formal application."
+        }
+      ],
+      "prior_partials": []
+    },
+    {
+      "id": "authorization-public-only",
+      "goal_id": "subgoal-08",
+      "criterion_id": "authorized-access",
+      "description": "Elena receives actual, immediately effective authorization from an official empowered to grant access to restricted Blackwood records. An application, promise or public pass does not suffice.",
+      "expected_status": "not_satisfied",
+      "observations": [
+        {
+          "turn": 1,
+          "role": "player",
+          "text": "Elena asks for permission to consult the records."
+        },
+        {
+          "turn": 1,
+          "role": "npc",
+          "text": "Mara gives Elena permission to browse the public reading room. She explicitly states that this permission does not cover restricted Blackwood records."
+        }
+      ],
+      "prior_partials": []
+    },
+    {
+      "id": "authorization-future",
+      "goal_id": "subgoal-08",
+      "criterion_id": "authorized-access",
+      "description": "Elena receives actual, immediately effective authorization from an official empowered to grant access to restricted Blackwood records. An application, promise or public pass does not suffice.",
+      "expected_status": "partial",
+      "observations": [
+        {
+          "turn": 1,
+          "role": "player",
+          "text": "Elena asks for access today."
+        },
+        {
+          "turn": 1,
+          "role": "npc",
+          "text": "Director Voss approves Elena's request, but says the authorization becomes effective tomorrow at 09:00. She may not access the restricted records today."
+        }
+      ],
+      "prior_partials": []
+    }
+  ]
+}
