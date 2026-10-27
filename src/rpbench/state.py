@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 
 
 VALID_GOAL_STATES = {
-    "pending", "active", "completed", "failed"
+    "pending", "active", "completed", "skipped", "failed"
 }
 
 VALID_EVENT_TYPES = {

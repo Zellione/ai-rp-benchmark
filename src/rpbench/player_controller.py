@@ -28,7 +28,9 @@ def select_player_goal(state: Mapping) -> dict | None:
         status = goal.get("status")
         description = goal.get("description")
 
-        if status not in {"pending", "active", "completed", "failed"}:
+        if status not in {
+            "pending", "active", "completed", "skipped", "failed"
+        }:
             raise ValueError("Invalid goal status")
 
         if not isinstance(description, str) or not description.strip():

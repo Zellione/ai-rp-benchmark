@@ -36,13 +36,38 @@ def validate_goal_criteria(definition, state):
 
         if (
             not isinstance(definition_entry, Mapping)
-            or set(definition_entry) != {"criteria"}
+            or set(definition_entry) not in (
+                {"criteria"},
+                {"criteria", "superseded_by"},
+            )
         ):
             raise ValueError("Invalid goal criteria entry")
 
         criteria = definition_entry["criteria"]
         if not isinstance(criteria, list) or not criteria:
             raise ValueError("Goal criteria must be nonempty")
+
+        if "superseded_by" in definition_entry:
+            rule = definition_entry["superseded_by"]
+            if (
+                not isinstance(rule, Mapping)
+                or set(rule) != {"goal_id", "criterion_id"}
+                or rule["goal_id"] == goal_id
+                or rule["goal_id"] not in goals
+            ):
+                raise ValueError("Invalid superseded_by rule")
+
+            target = goals[rule["goal_id"]]
+            if (
+                not isinstance(target, Mapping)
+                or not isinstance(target.get("criteria"), list)
+                or rule["criterion_id"] not in {
+                    item.get("id")
+                    for item in target["criteria"]
+                    if isinstance(item, Mapping)
+                }
+            ):
+                raise ValueError("Unknown superseding criterion")
 
         seen = set()
         for criterion in criteria:

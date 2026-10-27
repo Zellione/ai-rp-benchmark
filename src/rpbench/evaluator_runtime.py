@@ -18,6 +18,7 @@ from .evaluation_journal import (
     read_evaluations,
 )
 from .player_knowledge import replay_player_knowledge
+from .knowledge_normalization import normalize_knowledge_proposal
 
 
 def validate_evaluator_config(settings):
@@ -34,9 +35,30 @@ def validate_evaluator_config(settings):
             raise ValueError("Invalid mock evaluator configuration")
     elif mode == "llm":
         if set(settings) - {
-            "mode", "id", "backend", "sampling", "max_attempts"
+            "mode", "id", "backend", "sampling", "max_attempts",
+            "quest_opportunity_enabled",
+            "quest_scheduler",
         } or not {"mode", "id", "backend", "sampling"} <= set(settings):
             raise ValueError("Invalid LLM evaluator configuration")
+
+        enabled = settings.get(
+            "quest_opportunity_enabled", False
+        )
+        if type(enabled) is not bool:
+            raise ValueError(
+                "quest_opportunity_enabled must be boolean"
+            )
+
+        scheduler = settings.get("quest_scheduler", "legacy")
+        if scheduler not in {"legacy", "direct_supersession"}:
+            raise ValueError("Invalid quest scheduler")
+        if (
+            scheduler == "direct_supersession"
+            and settings.get("quest_opportunity_enabled", False)
+        ):
+            raise ValueError(
+                "Choose direct supersession or opportunity screening"
+            )
 
         attempts = settings.get("max_attempts", 1)
         if type(attempts) is not int or not 1 <= attempts <= 3:
@@ -107,6 +129,45 @@ def validate_evaluator_config(settings):
                     raise ValueError("Invalid evaluator rule field")
 
     return deepcopy(settings)
+
+
+def resolve_evaluator_config(settings, main_backend):
+    """Use the RP backend unless an evaluator backend is explicit.
+
+    The returned configuration contains a concrete backend, so
+    downstream gate, knowledge and criteria code stays unchanged.
+    """
+    if settings is None:
+        return None
+
+    if not isinstance(settings, dict):
+        raise ValueError("Invalid evaluator configuration")
+
+    resolved = deepcopy(settings)
+
+    if resolved.get("mode") == "llm" and "backend" not in resolved:
+        if not isinstance(main_backend, dict):
+            raise ValueError("Missing main backend")
+
+        # Evaluation uses chat completions. Do not silently
+        # reuse an incompatible native-completion endpoint.
+        if main_backend.get("mode", "chat") != "chat":
+            raise ValueError(
+                "Main backend is not a chat endpoint; "
+                "configure semantic_evaluator.backend explicitly"
+            )
+
+        allowed = {
+            "name", "base_url", "model",
+            "timeout", "api_key_env",
+        }
+        resolved["backend"] = {
+            key: value
+            for key, value in main_backend.items()
+            if key in allowed
+        }
+
+    return validate_evaluator_config(resolved)
 
 
 def mock_evaluate(npc_text, settings):
@@ -297,6 +358,11 @@ def reconcile_evaluations(
                             on_response=capture,
                             knowledge_only=knowledge_only,
                             repair=repair,
+                        )
+
+                    if knowledge_only:
+                        proposal = normalize_knowledge_proposal(
+                            proposal, visible_npc_text, turn
                         )
 
                     # Authoritative journal validation happens here.

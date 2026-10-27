@@ -15,8 +15,16 @@ from .semantic_criteria import (
     make_semantic_event,
 )
 from .criteria_progress import advance_criteria_goals
+from .partial_evidence import prior_partial_evidence
 from .observations import read_jsonl
 from .state import initial_state
+from .quest_scheduler import plan_goal_evaluations
+from .quest_opportunity import check_opportunities
+from .quest_opportunity_journal import (
+    EVENT_TYPE as OPPORTUNITY_EVENT_TYPE,
+    make_opportunity_event,
+    read_opportunity_event,
+)
 
 
 INSTRUCTIONS = """You are an independent roleplay goal adjudicator.
@@ -54,6 +62,15 @@ Important distinctions:
 Judge each criterion independently. Match its exact scope.
 Consider any exclusion conditions in its description.
 Do not assume that a related goal was completed.
+
+For each criterion, prior_partial_evidence contains earlier
+incomplete assessments and their original NPC source text.
+Evaluate whether these sources TOGETHER with the latest turn
+demonstrate every essential requirement of the criterion.
+Prior assessments are fallible; verify them against the text.
+Do not require all elements to appear in the same turn.
+When satisfied cumulatively, cite all essential source turns.
+A prior partial followed by an unrelated turn is not success.
 When essential evidence is absent, use not_satisfied.
 
 Return exactly one JSON object:
@@ -86,8 +103,28 @@ Rules:
 
 def _generate(
     definition, progress, observations, settings,
-    on_response=None, goal_id=None,
+    on_response=None, goal_id=None, criterion_ids=None,
 ):
+    if criterion_ids is not None:
+        if (
+            goal_id is None
+            or not isinstance(criterion_ids, (list, tuple))
+            or not criterion_ids
+            or any(
+                not isinstance(item, str) or not item
+                for item in criterion_ids
+            )
+            or len(set(criterion_ids)) != len(criterion_ids)
+        ):
+            raise ValueError("Invalid targeted criteria")
+
+        valid_ids = {
+            item["id"]
+            for item in definition["goals"][goal_id]["criteria"]
+        }
+        if not set(criterion_ids) <= valid_ids:
+            raise ValueError("Unknown targeted criterion")
+
     backend_cfg = settings["backend"]
     backend = Backend(
         name=backend_cfg["name"],
@@ -129,14 +166,28 @@ def _generate(
             {
                 "id": criterion["id"],
                 "description": criterion["description"],
+                "prior_partial_evidence": prior_partial_evidence(
+                    progress["goals"][identifier]["criteria"][
+                        criterion["id"]
+                    ],
+                    observations,
+                    current["turn"],
+                ),
             }
             for criterion in definition["goals"][identifier]["criteria"]
             if not progress["goals"][identifier]["criteria"][
                 criterion["id"]
             ]["proposed_satisfied"]
+            and (
+                criterion_ids is None
+                or criterion["id"] in criterion_ids
+            )
         ]
         if pending:
             open_criteria[identifier] = pending
+
+    if not open_criteria:
+        raise ValueError("No open criteria selected")
 
     # The player action matters for applications, permissions
     # and actual document examination.
@@ -213,7 +264,7 @@ def refresh_criteria(root, definition, observations, settings):
         if event.get("type") == EVENT_TYPE
     ]
 
-    _, progress, _ = advance_criteria_goals(
+    current_state, progress, _ = advance_criteria_goals(
         original, definition, observations, accepted
     )
 
@@ -235,12 +286,177 @@ def refresh_criteria(root, definition, observations, settings):
             if entry["turn"] <= turn
         ]
 
-        for goal_id in definition["goals"]:
+        # Never use future accepted assessments when
+        # reconstructing an earlier turn during resume.
+        historical = [
+            event for event in accepted
+            if event["turn"] <= turn
+        ]
+        current_state, progress, _ = advance_criteria_goals(
+            original, definition, available, historical
+        )
+
+        targeted_criteria = {}
+
+        if settings.get("quest_scheduler") == "direct_supersession":
+            # Plan from previous turns only: same-turn journal
+            # recovery must not change the original target.
+            previous_observations = [
+                item for item in observations
+                if item["turn"] < turn
+            ]
+            previous_events = [
+                item for item in accepted
+                if item["turn"] < turn
+            ]
+            plan_state, plan_progress, _ = advance_criteria_goals(
+                original, definition,
+                previous_observations, previous_events,
+            )
+            plan = plan_goal_evaluations(
+                plan_state, definition, plan_progress
+            )
+
+            active = plan["active_goal_id"]
+            early_goals = []
+
+            if active is not None:
+                rule = definition["goals"][active].get(
+                    "superseded_by"
+                )
+                if rule is not None:
+                    target_id = rule["goal_id"]
+                    criterion_id = rule["criterion_id"]
+
+                    target_state = plan_state["goals"][
+                        target_id
+                    ]["status"]
+                    target_progress = plan_progress["goals"][
+                        target_id
+                    ]["criteria"][criterion_id]
+
+                    if (
+                        target_state not in {
+                            "completed", "skipped", "failed"
+                        }
+                        and not target_progress["proposed_satisfied"]
+                    ):
+                        early_goals.append(target_id)
+                        targeted_criteria[target_id] = [
+                            criterion_id
+                        ]
+
+            goal_order = list(dict.fromkeys(
+                early_goals
+                + ([active] if active is not None else [])
+            ))
+
+        elif settings.get("quest_opportunity_enabled", False):
+            # The opportunity plan must be stable across
+            # partial-turn resume. Same-turn assessments may
+            # change quest status, but cannot change the
+            # candidates originally screened for this turn.
+            previous_observations = [
+                item for item in observations
+                if item["turn"] < turn
+            ]
+            previous_events = [
+                item for item in accepted
+                if item["turn"] < turn
+            ]
+            plan_state, plan_progress, _ = advance_criteria_goals(
+                original, definition,
+                previous_observations, previous_events,
+            )
+            plan = plan_goal_evaluations(
+                plan_state, definition, plan_progress
+            )
+            candidates = plan["opportunity_candidates"]
+            selected = []
+            fallback = False
+
+            if candidates:
+                archived = read_opportunity_event(
+                    events, turn, available, candidates,
+                    settings["id"],
+                )
+
+                if archived is not None:
+                    selected = archived["selected"]
+                    fallback = bool(
+                        (archived.get("metadata") or {}).get(
+                            "fallback", False
+                        )
+                    )
+                else:
+                    try:
+                        selected, metadata = check_opportunities(
+                            definition, candidates, available,
+                            settings,
+                        )
+                        event = make_opportunity_event(
+                            turn, available, candidates,
+                            selected, settings["id"], metadata,
+                        )
+                    except (
+                        ValueError,
+                        TypeError,
+                        KeyError,
+                        TimeoutError,
+                        socket.timeout,
+                        urllib.error.URLError,
+                    ) as error:
+                        fallback = True
+                        emit(
+                            f"Turn {turn:03} | OPPORTUNITY "
+                            f"fallback: {error}"
+                        )
+                        selected = [
+                            {
+                                "goal_id": candidate["goal_id"],
+                                "criterion_id": criterion_id,
+                            }
+                            for candidate in candidates
+                            for criterion_id in candidate["criterion_ids"]
+                        ]
+                        event = make_opportunity_event(
+                            turn, available, candidates,
+                            selected, settings["id"],
+                            {
+                                "fallback": True,
+                                "error": str(error),
+                            },
+                        )
+                        append(events_path, event)
+                        events.append(event)
+                    else:
+                        append(events_path, event)
+                        events.append(event)
+
+            if fallback:
+                goal_order = list(definition["goals"])
+            else:
+                # Evaluate early opportunities first. They may
+                # supersede the normal goal in this same turn.
+                goal_order = list(dict.fromkeys(
+                    [item["goal_id"] for item in selected]
+                    + (
+                        [plan["active_goal_id"]]
+                        if plan["active_goal_id"] is not None
+                        else []
+                    )
+                ))
+        else:
+            goal_order = list(definition["goals"])
+
+        for goal_id in goal_order:
             if (turn, goal_id) in checked:
                 continue
 
-            # A fully satisfied goal need not be checked again.
-            if progress["goals"][goal_id]["proposed_satisfied"]:
+            # Completed or superseded goals are no longer evaluated.
+            if current_state["goals"][goal_id]["status"] in {
+                "completed", "skipped", "failed"
+            }:
                 continue
 
             if all(
@@ -268,6 +484,11 @@ def refresh_criteria(root, definition, observations, settings):
                         definition, progress, available, settings,
                         on_response=capture,
                         goal_id=goal_id,
+                        **(
+                            {"criterion_ids": targeted_criteria[goal_id]}
+                            if goal_id in targeted_criteria
+                            else {}
+                        ),
                     )
 
                     if not isinstance(proposal, dict):
@@ -334,8 +555,12 @@ def refresh_criteria(root, definition, observations, settings):
 
                     accepted.append(event)
                     checked.add((turn, goal_id))
-                    _, progress, _ = advance_criteria_goals(
-                        original, definition, observations, accepted
+                    historical = [
+                        item for item in accepted
+                        if item["turn"] <= turn
+                    ]
+                    current_state, progress, _ = advance_criteria_goals(
+                        original, definition, available, historical
                     )
                     break
 

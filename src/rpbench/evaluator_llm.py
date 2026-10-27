@@ -159,6 +159,24 @@ Use the actual source_turn from the input.
     ]
 
     if repair is not None:
+        if knowledge_only:
+            correction = (
+                "Return exactly two top-level arrays: "
+                "knowledge_updates and goal_updates. "
+                "Each knowledge update must contain exactly "
+                "fact (string) and source_turns (array containing "
+                "the supplied source_turn). "
+                "Use goal_updates: []. "
+                "Do not include evidence, source_turn, status, "
+                "confidence or any additional fields."
+            )
+        else:
+            correction = (
+                "Every evidence quote must be copied exactly "
+                "from latest_npc_response. Remove unsupported "
+                "items rather than inventing quotes."
+            )
+
         messages.append({
             "role": "assistant",
             "content": repair["previous_output"],
@@ -169,9 +187,7 @@ Use the actual source_turn from the input.
                 "Your previous JSON was rejected: "
                 + repair["error"]
                 + "\\nReturn a corrected complete JSON object. "
-                "Every evidence quote must be copied exactly "
-                "from latest_npc_response. Remove unsupported "
-                "items rather than inventing quotes."
+                + correction
             ),
         })
 

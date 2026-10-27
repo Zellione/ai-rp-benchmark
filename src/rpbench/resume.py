@@ -241,6 +241,10 @@ def resume_simulation(
     run_dir, turns=None,
     evaluator_max_tokens=None,
     evaluator_attempts=None,
+    evaluator_timeout=None,
+    evaluator_temperature=None,
+    evaluator_top_p=None,
+    evaluator_top_k=None,
 ):
     root = Path(run_dir).resolve()
     with run_lock(root):
@@ -248,6 +252,10 @@ def resume_simulation(
             root, turns,
             evaluator_max_tokens=evaluator_max_tokens,
             evaluator_attempts=evaluator_attempts,
+            evaluator_timeout=evaluator_timeout,
+            evaluator_temperature=evaluator_temperature,
+            evaluator_top_p=evaluator_top_p,
+            evaluator_top_k=evaluator_top_k,
         )
 
 
@@ -255,6 +263,10 @@ def _resume_simulation_locked(
     run_dir, turns=None,
     evaluator_max_tokens=None,
     evaluator_attempts=None,
+    evaluator_timeout=None,
+    evaluator_temperature=None,
+    evaluator_top_p=None,
+    evaluator_top_k=None,
 ):
     root = Path(run_dir).resolve()
     manifest_path = root / "manifest.json"
@@ -387,6 +399,10 @@ def _resume_simulation_locked(
     if (
         evaluator_max_tokens is not None
         or evaluator_attempts is not None
+        or evaluator_timeout is not None
+        or evaluator_temperature is not None
+        or evaluator_top_p is not None
+        or evaluator_top_k is not None
     ):
         current = manifest.get(
             "runtime", {}
@@ -410,6 +426,22 @@ def _resume_simulation_locked(
         if evaluator_attempts is not None:
             candidate["max_attempts"] = evaluator_attempts
 
+        if evaluator_timeout is not None:
+            if (
+                type(evaluator_timeout) is not int
+                or not 1 <= evaluator_timeout <= 3600
+            ):
+                raise ValueError("Invalid evaluator timeout")
+            candidate["backend"]["timeout"] = evaluator_timeout
+
+        for value, key in (
+            (evaluator_temperature, "temperature"),
+            (evaluator_top_p, "top_p"),
+            (evaluator_top_k, "top_k"),
+        ):
+            if value is not None:
+                candidate["sampling"][key] = value
+
         validate_evaluator_config(candidate)
 
         if candidate != current:
@@ -422,8 +454,10 @@ def _resume_simulation_locked(
             manifest["runtime"]["semantic_evaluator"] = candidate
             dump(manifest_path, manifest)
 
-    evaluator_settings = validate_evaluator_config(
-        manifest.get("runtime", {}).get("semantic_evaluator")
+    from .evaluator_runtime import resolve_evaluator_config
+    evaluator_settings = resolve_evaluator_config(
+        manifest.get("runtime", {}).get("semantic_evaluator"),
+        manifest["backend"],
     )
 
     # Archived evaluator proposals must be validated against
@@ -617,6 +651,10 @@ def main():
     parser.add_argument("--turns", type=int)
     parser.add_argument("--evaluator-max-tokens", type=int)
     parser.add_argument("--evaluator-attempts", type=int)
+    parser.add_argument("--evaluator-timeout", type=int)
+    parser.add_argument("--evaluator-temperature", type=float)
+    parser.add_argument("--evaluator-top-p", type=float)
+    parser.add_argument("--evaluator-top-k", type=int)
     args = parser.parse_args()
 
     print(resume_simulation(
@@ -624,6 +662,10 @@ def main():
         args.turns,
         evaluator_max_tokens=args.evaluator_max_tokens,
         evaluator_attempts=args.evaluator_attempts,
+        evaluator_timeout=args.evaluator_timeout,
+        evaluator_temperature=args.evaluator_temperature,
+        evaluator_top_p=args.evaluator_top_p,
+        evaluator_top_k=args.evaluator_top_k,
     ))
 
 

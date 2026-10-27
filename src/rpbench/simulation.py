@@ -420,8 +420,10 @@ def run_simulation(
     else:
         player_knowledge = None
 
-    evaluator_settings = validate_evaluator_config(
-        config.get("runtime", {}).get("semantic_evaluator")
+    from .evaluator_runtime import resolve_evaluator_config
+    evaluator_settings = resolve_evaluator_config(
+        config.get("runtime", {}).get("semantic_evaluator"),
+        config["backend"],
     )
     if evaluator_settings is not None and not controlled_player:
         raise ValueError(
