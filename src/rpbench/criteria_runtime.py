@@ -47,6 +47,24 @@ Status definitions:
 - not_satisfied: No required component of the exact criterion
   has been demonstrated, or evidence is insufficient.
 
+Semantic role identification:
+- A named role or responsibility may be established through
+  explicit statements OR sufficiently strong, player-accessible
+  contextual evidence.
+- Do not require an exact title, phrase, or official label unless
+  the criterion explicitly requires learning that designation.
+- Credible statements, observed duties, reporting relationships,
+  and demonstrated authority may jointly establish a role.
+- Require enough evidence to distinguish the intended role from
+  plausible alternatives. Seniority, authority, and job titles
+  are not automatically interchangeable.
+- Mere demeanor, politeness, proximity, or isolated instructions
+  are insufficient to establish a senior position.
+- Resolve material contradictions using the actual source text.
+  Do not silently prefer an earlier claim over a later correction.
+- Explain which observations support an inferred role and cite
+  the essential source turns.
+
 Important distinctions:
 
 - General preparation is not automatically partial progress.
