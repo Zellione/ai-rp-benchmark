@@ -104,6 +104,7 @@ Rules:
 def _generate(
     definition, progress, observations, settings,
     on_response=None, goal_id=None, criterion_ids=None,
+    repair=None,
 ):
     if criterion_ids is not None:
         if (
@@ -217,6 +218,30 @@ def _generate(
             "content": json.dumps(context, ensure_ascii=False),
         },
     ]
+
+    if repair is not None:
+        if not isinstance(repair, dict) or not {
+            "previous_output", "error"
+        } <= set(repair):
+            raise ValueError("Invalid criteria repair context")
+
+        # Do not treat a previous natural-language verdict
+        # as authoritative. Reassess the source evidence.
+        messages.append({
+            "role": "user",
+            "content": (
+                "The previous response was rejected: "
+                + str(repair["error"])[:500]
+                + "\nReassess the supplied evidence and return "
+                "ONLY the required JSON object. "
+                "Use exactly schema_version and criterion_updates. "
+                "Each update needs goal_id, criterion_id, status, "
+                "source_turns, and reason. "
+                "Return exactly one update per requested criterion. "
+                "Do not use Markdown, prose outside JSON, or "
+                "invented source turns."
+            ),
+        })
 
     url, payload = backend.prepare(
         messages, settings["sampling"], {}
@@ -468,6 +493,7 @@ def refresh_criteria(root, definition, observations, settings):
                 continue
 
             max_attempts = settings.get("max_attempts", 1)
+            repair = None
 
             for attempt in range(1, max_attempts + 1):
                 emit(
@@ -487,6 +513,11 @@ def refresh_criteria(root, definition, observations, settings):
                         **(
                             {"criterion_ids": targeted_criteria[goal_id]}
                             if goal_id in targeted_criteria
+                            else {}
+                        ),
+                        **(
+                            {"repair": repair}
+                            if repair is not None
                             else {}
                         ),
                     )
@@ -517,6 +548,17 @@ def refresh_criteria(root, definition, observations, settings):
                     socket.timeout,
                     urllib.error.URLError,
                 ) as error:
+                    # Repair only model outputs. Transport failures
+                    # should retry without misleading repair context.
+                    repair = (
+                        {
+                            "previous_output": captured["content"],
+                            "error": str(error),
+                        }
+                        if isinstance(captured.get("content"), str)
+                        and captured["content"].strip()
+                        else None
+                    )
                     append(events_path, {
                         "type": "criteria_attempt",
                         "turn": turn,

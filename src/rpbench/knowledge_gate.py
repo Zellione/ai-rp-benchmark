@@ -59,9 +59,12 @@ def observable_text(paragraphs, labels):
 
 def evaluate_gate(
     player_action, npc_text, settings,
-    on_response=None, max_tokens=4096,
+    on_response=None, max_tokens=None,
 ):
-    if type(max_tokens) is not int or not 1 <= max_tokens <= 32768:
+    if max_tokens is None:
+        max_tokens = settings["sampling"]["max_tokens"]
+
+    if type(max_tokens) is not int or not 1 <= max_tokens <= 131072:
         raise ValueError("Invalid gate token budget")
 
     parts = split_paragraphs(npc_text)
