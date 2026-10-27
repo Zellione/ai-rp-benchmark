@@ -109,23 +109,40 @@ def evaluate_llm(
 
     instructions = EVALUATOR_INSTRUCTIONS
     if knowledge_only:
+        # Keep the semantic extraction task bounded to one turn.
+        # Deduplication belongs to the knowledge journal/replay.
+        context.pop("known_information", None)
         context["source_turn"] = settings.get("_source_turn", 1)
-        instructions = """Extract NEW information the player learns from the latest NPC response.
+        context["latest_player_action"] = settings.get("_player_action")
+        instructions = """Identify NEW information the player character
+could personally learn in this roleplay turn.
 
-Return JSON:
+Use latest_player_action to establish the player's perspective.
+Only include information the player directly hears, sees, reads,
+or can reasonably infer from witnessed events.
+
+Exclude private conversations, internal thoughts, and events
+occurring elsewhere. Narrator knowledge is not automatically
+player knowledge.
+
+If the NPC response only describes an off-screen conversation,
+return an empty knowledge_updates array.
+
+Do not deliberate over hypothetical interpretations.
+When uncertain whether the player could observe something,
+omit it.
+
+Treat NPC statements as attributed claims, not objective truth.
+
+Return only JSON:
 {
   "knowledge_updates": [
-    {"fact": "Concise semantic paraphrase", "source_turns": [1]}
+    {"fact": "Concise player-accessible fact", "source_turns": [1]}
   ],
   "goal_updates": []
 }
 
-The actual turn number is provided as source_turn in the input.
-NPC statements are reported claims, not necessarily world truth.
-Preserve uncertainty, attribution, and corrections.
-Paraphrasing is encouraged. Do not copy exact quotations.
-Omit redundant or unsupported facts.
-Return JSON only.
+Use the actual source_turn from the input.
 """
 
     messages = [

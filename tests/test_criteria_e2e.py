@@ -65,6 +65,23 @@ def test_live_criteria_and_resume(tmp_path, monkeypatch):
                 payload["messages"][1]["content"]
             )
 
+            if "PLAYER-PERSPECTIVE SCENE BOUNDARIES" in system:
+                content = json.dumps({
+                    "labels": [
+                        {
+                            "id": paragraph["id"],
+                            "visibility": "observable",
+                        }
+                        for paragraph in context["paragraphs"]
+                    ],
+                })
+                return content, {
+                    "choices": [{
+                        "message": {"content": content},
+                        "finish_reason": "stop",
+                    }],
+                }
+
             if "criterion_updates" in system:
                 criteria_calls.append(context)
                 count = len(criteria_calls)

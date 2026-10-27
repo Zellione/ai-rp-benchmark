@@ -5,6 +5,12 @@ from hashlib import sha256
 
 from .core import append, dump
 from .evaluator_llm import evaluate_llm
+from .knowledge_gate import (
+    evaluate_gate, observable_text, split_paragraphs,
+)
+from .knowledge_gate_journal import (
+    append_gate_event, read_gate_events,
+)
 from .progress_status import emit
 from .sampling import validate_sampling
 from .evaluation_journal import (
@@ -144,6 +150,12 @@ def reconcile_evaluations(
     path = root / "events.jsonl"
     existing = read_evaluations(path, observations, goal_state)
 
+    gates = (
+        read_gate_events(path, observations)
+        if knowledge_only and settings["mode"] == "llm"
+        else {}
+    )
+
     for observation in observations:
         if observation["role"] != "npc":
             continue
@@ -184,6 +196,76 @@ def reconcile_evaluations(
 
             max_attempts = settings.get("max_attempts", 1)
 
+            current_player = next(
+                (
+                    entry["text"]
+                    for entry in observations
+                    if entry["turn"] == turn
+                    and entry["role"] == "player"
+                ),
+                None,
+            )
+
+            if knowledge_only and current_player is None:
+                raise ValueError(
+                    "Player observation required for knowledge gate"
+                )
+
+            visible_npc_text = observation["text"]
+
+            if knowledge_only:
+                if turn not in gates:
+                    gate_metadata = {}
+
+                    for gate_attempt in range(
+                        1, max_attempts + 1
+                    ):
+                        gate_metadata.clear()
+
+                        emit(
+                            f"Turn {turn:03} | KNOWLEDGE GATE "
+                            f"({gate_attempt}/{max_attempts})"
+                        )
+
+                        try:
+                            labels, _ = evaluate_gate(
+                                current_player,
+                                observation["text"],
+                                settings,
+                                on_response=gate_metadata.update,
+                            )
+
+                            event = append_gate_event(
+                                path, observations,
+                                turn, current_player,
+                                observation["text"], labels,
+                            )
+
+                        except ValueError as error:
+                            append(path, {
+                                "type": "knowledge_gate_attempt_v1",
+                                "turn": turn,
+                                "attempt": gate_attempt,
+                                "status": "rejected",
+                                "error": str(error),
+                                "raw_response": gate_metadata or None,
+                            })
+                            if gate_attempt == max_attempts:
+                                raise
+                        else:
+                            gates[turn] = event
+                            break
+
+                parts = split_paragraphs(observation["text"])
+                labels = gates[turn]["labels"]
+                visible_npc_text = observable_text(parts, labels)
+
+                emit(
+                    f"Turn {turn:03} | KNOWLEDGE GATE "
+                    f"{sum(label == 'observable' for label in labels)}"
+                    f"/{len(labels)} observable"
+                )
+
             repair = None
 
             for attempt in range(1, max_attempts + 1):
@@ -199,15 +281,23 @@ def reconcile_evaluations(
                 try:
                     request_settings = dict(settings)
                     request_settings["_source_turn"] = turn
-                    proposal = evaluate_llm(
-                        observation["text"],
-                        goal_state,
-                        prior_knowledge,
-                        request_settings,
-                        on_response=capture,
-                        knowledge_only=knowledge_only,
-                        repair=repair,
-                    )
+                    request_settings["_player_action"] = current_player
+
+                    if knowledge_only and not visible_npc_text:
+                        proposal = {
+                            "knowledge_updates": [],
+                            "goal_updates": [],
+                        }
+                    else:
+                        proposal = evaluate_llm(
+                            visible_npc_text,
+                            goal_state,
+                            prior_knowledge,
+                            request_settings,
+                            on_response=capture,
+                            knowledge_only=knowledge_only,
+                            repair=repair,
+                        )
 
                     # Authoritative journal validation happens here.
                     # Invalid evidence must not enter player knowledge.

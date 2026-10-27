@@ -312,7 +312,9 @@ def test_resume_evaluates_archived_response_once(
 def test_knowledge_only_ignores_goal_proposals(monkeypatch):
     def fake_generate(self, url, payload):
         system = payload["messages"][0]["content"]
-        assert "Extract NEW information" in system
+        assert "NEW information the player character" in system
+        assert "private conversations" in system
+        assert "directly hears, sees, reads" in system
 
         context = json.loads(
             payload["messages"][1]["content"]
