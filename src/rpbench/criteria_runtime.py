@@ -510,7 +510,14 @@ def refresh_criteria(root, definition, observations, settings):
             ):
                 continue
 
+            base_budget = settings.get(
+                "sampling", {}
+            ).get("max_tokens")
             max_attempts = settings.get("max_attempts", 1)
+            if base_budget == 16384:
+                max_attempts = max(max_attempts, 2)
+
+            retry_at_32k = False
             repair = None
 
             for attempt in range(1, max_attempts + 1):
@@ -520,12 +527,27 @@ def refresh_criteria(root, definition, observations, settings):
                 )
                 captured = {}
 
+                attempt_settings = settings
+                if retry_at_32k:
+                    attempt_settings = {
+                        **settings,
+                        "sampling": {
+                            **settings["sampling"],
+                            "max_tokens": 32768,
+                        },
+                    }
+
+                attempt_budget = attempt_settings.get(
+                    "sampling", {}
+                ).get("max_tokens")
+
                 def capture(response):
                     captured.update(response)
 
                 try:
                     proposal, metadata = _generate(
-                        definition, progress, available, settings,
+                        definition, progress, available,
+                        attempt_settings,
                         on_response=capture,
                         goal_id=goal_id,
                         **(
@@ -539,6 +561,12 @@ def refresh_criteria(root, definition, observations, settings):
                             else {}
                         ),
                     )
+
+                    if metadata["finish_reason"] == "length":
+                        raise ValueError(
+                            "Criteria generation exhausted "
+                            f"max_tokens={attempt_budget}"
+                        )
 
                     if not isinstance(proposal, dict):
                         raise ValueError("Invalid criteria result")
@@ -566,23 +594,36 @@ def refresh_criteria(root, definition, observations, settings):
                     socket.timeout,
                     urllib.error.URLError,
                 ) as error:
-                    # Repair only model outputs. Transport failures
-                    # should retry without misleading repair context.
-                    repair = (
-                        {
-                            "previous_output": captured["content"],
-                            "error": str(error),
-                        }
-                        if isinstance(captured.get("content"), str)
-                        and captured["content"].strip()
-                        else None
-                    )
+                    # Only a 16K token-limit failure triggers
+                    # a 32K retry of the original request.
+                    if (
+                        base_budget == 16384
+                        and attempt_budget == 16384
+                        and captured.get("finish_reason") == "length"
+                    ):
+                        retry_at_32k = True
+                        repair = None
+                    else:
+                        retry_at_32k = False
+                        repair = (
+                            {
+                                "previous_output": captured["content"],
+                                "error": str(error),
+                            }
+                            if isinstance(captured.get("content"), str)
+                            and captured["content"].strip()
+                            else None
+                        )
+
+                    # Record rejected attempt before retry.
+                    # Legacy repair assignment removed below.
                     append(events_path, {
                         "type": "criteria_attempt",
                         "turn": turn,
                         "goal_id": goal_id,
                         "attempt": attempt,
                         "status": "rejected",
+                        "max_tokens": attempt_budget,
                         "error": str(error),
                         "raw_response": captured or None,
                     })
@@ -601,6 +642,7 @@ def refresh_criteria(root, definition, observations, settings):
                         "goal_id": goal_id,
                         "attempt": attempt,
                         "status": "accepted",
+                        "max_tokens": attempt_budget,
                         "usage": metadata["usage"],
                         "finish_reason": metadata["finish_reason"],
                     })
