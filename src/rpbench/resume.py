@@ -10,6 +10,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from .core import append, dump, load
+from .progress_status import emit
 from .run_lock import run_lock
 from .journal_recovery import recover_run_journals
 from .observations import read_jsonl, validate_sequence
@@ -487,6 +488,7 @@ def _resume_simulation_locked(
 
     try:
         for turn in range(completed + 1, target + 1):
+            emit(f"Turn {turn:03}/{target:03} | START (resume)")
             have_player = (
                 len(entries) % 2 == 1
                 and entries[-1]["turn"] == turn
@@ -591,6 +593,7 @@ def _resume_simulation_locked(
 
             manifest["completed_turns"] = completed
             dump(manifest_path, manifest)
+            emit(f"Turn {turn:03}/{target:03} | COMPLETE")
 
         manifest["status"] = "complete"
 

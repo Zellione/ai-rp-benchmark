@@ -5,6 +5,7 @@ from hashlib import sha256
 
 from .core import append, dump
 from .evaluator_llm import evaluate_llm
+from .progress_status import emit
 from .sampling import validate_sampling
 from .evaluation_journal import (
     append_evaluation,
@@ -186,6 +187,10 @@ def reconcile_evaluations(
             repair = None
 
             for attempt in range(1, max_attempts + 1):
+                emit(
+                    f"Turn {turn:03} | KNOWLEDGE evaluation"
+                    f" (attempt {attempt}/{max_attempts})"
+                )
                 captured = {}
 
                 def capture(response):

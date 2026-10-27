@@ -7,6 +7,7 @@ import urllib.error
 from pathlib import Path
 
 from .core import Backend, append, dump, load
+from .progress_status import emit
 from .evaluator_llm import parse_evaluator_json
 from .goal_criteria import validate_goal_criteria
 from .semantic_criteria import (
@@ -18,16 +19,42 @@ from .observations import read_jsonl
 from .state import initial_state
 
 
-INSTRUCTIONS = """Evaluate ONE roleplay goal semantically.
+INSTRUCTIONS = """You are an independent roleplay goal adjudicator.
 
-Consider what the player actually did and what the NPC
-actually communicated. Paraphrases and implied information
-can count when the meaning is unambiguous.
+Evaluate exactly ONE supplied goal and its open criteria.
 
-For each supplied criterion, decide:
-- satisfied: fully achieved
-- partial: meaningful progress, not yet achieved
-- not_satisfied: not achieved or insufficient information
+Use the actual player action and NPC response. Semantic
+paraphrases and unambiguous implications are acceptable,
+but do not invent actions, permissions, documents, or facts.
+
+Status definitions:
+
+- satisfied: Every essential element of the exact criterion
+  has been demonstrated by concrete evidence.
+
+- partial: Concrete evidence demonstrates at least one
+  identifiable, necessary component of THAT SAME criterion.
+  The complete condition has not yet been fulfilled.
+
+- not_satisfied: No required component of the exact criterion
+  has been demonstrated, or evidence is insufficient.
+
+Important distinctions:
+
+- General preparation is not automatically partial progress.
+- A related accomplishment is not a required component.
+- Visitor registration is not a restricted-access application.
+- Submitting an application is not receiving authorization.
+- Public reading permission is not restricted authorization.
+- Reading public records is not examining restricted records.
+- An invitation to apply is not an approval.
+- Hypothetical future actions are not completed actions.
+- NPC helpfulness does not establish formal permission.
+
+Judge each criterion independently. Match its exact scope.
+Consider any exclusion conditions in its description.
+Do not assume that a related goal was completed.
+When essential evidence is absent, use not_satisfied.
 
 Return exactly one JSON object:
 
@@ -37,29 +64,22 @@ Return exactly one JSON object:
     {
       "goal_id": "existing goal ID",
       "criterion_id": "existing criterion ID",
-      "status": "partial",
-      "source_turns": [1],
-      "reason": "Concise semantic justification"
+      "status": "not_satisfied",
+      "source_turns": [],
+      "reason": "Which required element was or was not demonstrated"
     }
   ]
 }
 
 Rules:
-- Evaluate only the goal and criteria supplied in the request.
-- Include one result for every supplied criterion.
-- Conversation turns are numbered starting at 1. Turn 0 is invalid.
-- For satisfied or partial, source_turns must contain at least
-  one valid existing NPC turn number.
-- For not_satisfied, use source_turns: [] when no supporting
-  event exists. Never invent a source.
-- Cite existing conversation turns, not fabricated quotes.
-- The player requesting access is not the same as receiving it.
-- A public document is not a restricted document.
-- Hypothetical actions are not completed actions.
+- Evaluate only supplied criteria.
+- Return one update for every supplied criterion.
+- Only cite existing NPC turns, numbered starting at 1.
+- For satisfied and partial, provide at least one valid source turn.
+- For not_satisfied, an empty source_turns list is valid.
+- Never invent sources, goal IDs, or criterion IDs.
 - NPC claims are not necessarily objective world truth.
-- If uncertain, choose partial or not_satisfied.
-- A negative result is a valid successful evaluation.
-- Never invent criterion IDs or turn numbers.
+- Negative judgments are valid results.
 - Return only JSON, without Markdown.
 """
 
@@ -234,6 +254,10 @@ def refresh_criteria(root, definition, observations, settings):
             max_attempts = settings.get("max_attempts", 1)
 
             for attempt in range(1, max_attempts + 1):
+                emit(
+                    f"Turn {turn:03} | CRITERIA {goal_id}"
+                    f" (attempt {attempt}/{max_attempts})"
+                )
                 captured = {}
 
                 def capture(response):
@@ -281,6 +305,11 @@ def refresh_criteria(root, definition, observations, settings):
                         "error": str(error),
                         "raw_response": captured or None,
                     })
+                    emit(
+                        f"Turn {turn:03} | CRITERIA {goal_id} "
+                        f"REJECTED ({attempt}/{max_attempts}): "
+                        f"{error}"
+                    )
                     if attempt == max_attempts:
                         raise
                 else:
@@ -294,6 +323,14 @@ def refresh_criteria(root, definition, observations, settings):
                         "usage": metadata["usage"],
                         "finish_reason": metadata["finish_reason"],
                     })
+
+                    for update in event["result"]["criterion_updates"]:
+                        emit(
+                            f"Turn {turn:03} | "
+                            f"{update['goal_id']}/"
+                            f"{update['criterion_id']} = "
+                            f"{update['status']}"
+                        )
 
                     accepted.append(event)
                     checked.add((turn, goal_id))

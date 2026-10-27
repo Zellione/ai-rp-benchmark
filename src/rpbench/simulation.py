@@ -12,6 +12,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from .core import Backend, append, dump, load
+from .progress_status import emit
 from .run_lock import run_lock
 from .characters import build_npc_prompt
 from .completion_presets import resolve_completion_preset
@@ -267,6 +268,10 @@ def generate_role(
     max_attempts = max(2, empty_response_retries + 1)
 
     for attempt in range(1, max_attempts + 1):
+        emit(
+            f"Turn {turn:03} | {role.upper()} generation"
+            f" (attempt {attempt}/{max_attempts})"
+        )
         append(run_dir / "events.jsonl", {
             "type": "request",
             "turn": turn,
@@ -634,6 +639,7 @@ def run_simulation(
 
         try:
             for turn in range(1, turns + 1):
+                emit(f"Turn {turn:03}/{turns:03} | START")
                 player_text = generate_role(
                     backend,
                     render_controlled_player_request(
@@ -747,6 +753,7 @@ def run_simulation(
 
                 manifest["completed_turns"] = turn
                 dump(run_dir / "manifest.json", manifest)
+                emit(f"Turn {turn:03}/{turns:03} | COMPLETE")
 
             manifest["status"] = "complete"
 
