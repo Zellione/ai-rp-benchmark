@@ -77,7 +77,7 @@ def validate_evaluator_config(settings):
             raise ValueError("Unknown evaluator backend settings")
 
         if backend["name"] not in {
-            "llamacpp", "vllm", "koboldcpp"
+            "llamacpp", "vllm", "koboldcpp", "nanogpt"
         }:
             raise ValueError("Unsupported evaluator backend")
 
