@@ -17,32 +17,41 @@ def digest(data):
     return hashlib.sha256(data).hexdigest()
 
 
-def load_probes(directory):
+def load_probes(directory, allow_incomplete=False):
     directory = Path(directory)
     found = {}
+    incomplete = {}
 
     for filename in sorted(directory.glob("*/result.json")):
         data = filename.read_bytes()
         probe = json.loads(data)
         scenario = probe["scenario_id"]
 
-        if scenario in found:
-            raise ValueError(
-                f"Multiple probe attempts for {scenario}; "
-                "select a unique completed attempt first"
-            )
-
         if probe.get("status") != "complete":
-            raise ValueError(f"Incomplete probe: {scenario}")
+            incomplete.setdefault(scenario, []).append(filename)
+            continue
 
         if "model_identity" not in probe:
             raise ValueError(f"Missing model identity: {scenario}")
+
+        if scenario in found:
+            raise ValueError(
+                f"Multiple completed probe attempts for {scenario}; "
+                "explicit selection required"
+            )
 
         found[scenario] = {
             "probe": probe,
             "digest": digest(data),
             "file": filename,
         }
+
+    unresolved = set(incomplete) - set(found)
+    if unresolved and not allow_incomplete:
+        raise ValueError(
+            "No completed probe for: "
+            + ", ".join(sorted(unresolved))
+        )
 
     if not found:
         raise ValueError("No completed probes found")
@@ -85,8 +94,10 @@ def pending_probes(probes, attempts, retry_failed=False):
     return pending
 
 
-def run_batch(probe_dir, judge_config, output, retry_failed=False):
-    probes = load_probes(probe_dir)
+def run_batch(probe_dir, judge_config, output, retry_failed=False, allow_incomplete=False):
+    probes = load_probes(
+        probe_dir, allow_incomplete=allow_incomplete
+    )
 
     config_bytes = Path(judge_config).read_bytes()
     config_digest = digest(config_bytes)
@@ -171,6 +182,7 @@ def main():
     parser.add_argument("--judge-config", required=True)
     parser.add_argument("--out", required=True)
     parser.add_argument("--retry-failed", action="store_true")
+    parser.add_argument("--allow-incomplete", action="store_true")
     args = parser.parse_args()
 
     failures = run_batch(
@@ -178,6 +190,7 @@ def main():
         args.judge_config,
         args.out,
         retry_failed=args.retry_failed,
+        allow_incomplete=args.allow_incomplete,
     )
     if failures:
         raise SystemExit(1)

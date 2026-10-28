@@ -66,7 +66,7 @@ def test_duplicate_probe_rejected(tmp_path):
         original.read_bytes()
     )
 
-    with pytest.raises(ValueError, match="Multiple probe"):
+    with pytest.raises(ValueError, match="Multiple completed probe attempts"):
         load_probes(directory)
 
 
@@ -110,3 +110,34 @@ def test_changed_probe_rejected(tmp_path):
         read_attempts(
             tmp_path / "judgments", probes, "same"
         )
+
+
+def test_failed_attempt_followed_by_success(tmp_path):
+    directory = make_probes(tmp_path)
+
+    failed = directory / "failed-retry"
+    failed.mkdir()
+
+    (failed / "result.json").write_text(
+        json.dumps({
+            "scenario_id": "first",
+            "status": "empty_response",
+            "model_identity": {"id": "example/model"},
+        }),
+        encoding="utf-8",
+    )
+
+    probes = load_probes(directory)
+    assert set(probes) == {"first", "second"}
+
+
+def test_only_failed_attempt_rejected(tmp_path):
+    directory = make_probes(tmp_path)
+
+    file = directory / "run-first" / "result.json"
+    record = json.loads(file.read_text())
+    record["status"] = "empty_response"
+    file.write_text(json.dumps(record))
+
+    with pytest.raises(ValueError, match="No completed probe"):
+        load_probes(directory)
