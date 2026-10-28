@@ -342,6 +342,11 @@ def run(scenario_path: str, config_path: str, output: str) -> Path:
     markdown.write_text(f"# {scenario.get('title', name)}\n\n## System\n\n{scenario['system']}\n\n", encoding="utf-8")
     try:
         for idx, user_text in enumerate(turns, 1):
+            print(
+                f"[RPBench] Turn {idx:03}/{len(turns):03} "
+                "START",
+                flush=True,
+            )
             messages.append({"role": "user", "content": user_text})
             url, payload = backend.prepare(messages, sampling, fmt)
             started = time.perf_counter()
@@ -383,6 +388,13 @@ def run(scenario_path: str, config_path: str, output: str) -> Path:
                 f.flush()
                 os.fsync(f.fileno())
             messages.append({"role": "assistant", "content": answer})
+            print(
+                f"[RPBench] Turn {idx:03}/{len(turns):03} "
+                f"COMPLETE | {elapsed:.2f}s | "
+                f"tokens={(response.get('usage') or {}).get('completion_tokens')} "
+                f"| finish={finish_reason}",
+                flush=True,
+            )
         manifest["status"] = "complete"
     except Exception as error:
         manifest["status"] = "failed"

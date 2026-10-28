@@ -465,6 +465,18 @@ def run_simulation(
         raise ValueError("empty_response_retries must be 0..2")
 
     backend = make_backend(config)
+    player_backend_config = config.get(
+        "player_backend", config["backend"]
+    )
+    player_backend = make_backend({
+        "backend": player_backend_config,
+    })
+
+    if player_backend.mode not in {"chat", "completion"}:
+        raise ValueError(
+            "Player requires chat or completion mode"
+        )
+
     if backend.mode not in {"chat", "completion"}:
         raise ValueError(
             "Self-play requires chat or completion mode"
@@ -479,7 +491,9 @@ def run_simulation(
         backend.name, backend.mode, sampling
     )
     validate_sampling(
-        backend.name, backend.mode, player_sampling
+        player_backend.name,
+        player_backend.mode,
+        player_sampling,
     )
 
     prompt_format = config.get("prompt_format", {})
@@ -570,6 +584,10 @@ def run_simulation(
                 if k not in {"api_key", "api_key_env"}
             },
             "sampling": sampling,
+            "player_backend": {
+                k: v for k, v in player_backend_config.items()
+                if k not in {"api_key", "api_key_env"}
+            },
             "player_sampling": player_sampling,
             "player_reasoning_effort": config.get(
                 "player_reasoning_effort"
@@ -643,7 +661,7 @@ def run_simulation(
             for turn in range(1, turns + 1):
                 emit(f"Turn {turn:03}/{turns:03} | START")
                 player_text = generate_role(
-                    backend,
+                    player_backend,
                     render_controlled_player_request(
                         player_messages,
                         state,
