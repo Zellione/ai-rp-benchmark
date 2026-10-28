@@ -11,6 +11,7 @@ from .refusal_probe import (
     validate_model_identity,
     validate_scenario,
 )
+from .deployment_preflight import get_json, verify
 
 
 def sha256(data):
@@ -163,6 +164,29 @@ def run_batch(manifest_file, config_file, output, retry_failed=False):
     )
 
     directory.mkdir(parents=True, exist_ok=True)
+
+    if pending:
+        config = json.loads(
+            Path(config_file).read_text(encoding="utf-8")
+        )
+        backend = config["backend"]
+
+        if backend["name"] != "mock":
+            base = backend["base_url"].rstrip("/")
+            models = get_json(base + "/v1/models")
+            props = (
+                get_json(base + "/props")
+                if backend["name"] == "llamacpp"
+                else None
+            )
+
+            verification = verify(config, models, props)
+            print(
+                "Preflight:",
+                json.dumps(verification),
+                flush=True,
+            )
+
     failures = 0
 
     for index, item in enumerate(pending, 1):
