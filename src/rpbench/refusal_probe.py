@@ -10,6 +10,13 @@ from pathlib import Path
 
 from .core import Backend, dump
 from .sampling import validate_sampling
+from .preset_adapter import (
+    SillyTavernPresetAdapter,
+    render_with_adapter,
+)
+from .prompt_models import PromptMessage
+from .prompt_chat import validate_strict_chat_template
+from .preset_backend_compat import lower_to_alternating_chat
 
 
 def validate_scenario(scenario):
@@ -98,7 +105,87 @@ def validate_model_identity(identity):
     return identity
 
 
-def run_probe(scenario_path, config_path, output_dir):
+def build_preset_messages(
+    scenario,
+    preset_path,
+    character_id=100001,
+):
+    # The scenario system text is supplied through charDescription,
+    # rather than being duplicated in the chat history.
+    original = build_messages(scenario)
+    history = [
+        PromptMessage(row["role"], row["content"])
+        for row in original[1:]
+    ]
+
+    adapter = SillyTavernPresetAdapter(
+        preset_path,
+        preset_id=Path(preset_path).stem,
+        allow_disabled_orphans=True,
+    )
+
+    ordered = adapter.preset.ordered_prompts(character_id)
+    markers = {
+        item["identifier"]: ""
+        for item in ordered
+        if item["enabled"]
+        and item.get("marker", False)
+        and item["identifier"] != "chatHistory"
+    }
+
+    if "charDescription" not in markers:
+        raise ValueError(
+            "Preset lacks active charDescription marker"
+        )
+    markers["charDescription"] = scenario["system"]
+
+    result = render_with_adapter(
+        adapter,
+        history,
+        markers=markers,
+        character_name="Mara Voss",
+        user_name="Player",
+        character_id=character_id,
+    )
+
+    # History may be followed by post-history system instructions.
+    expected = [message.to_dict() for message in history]
+    cursor = 0
+    for message in result.messages:
+        if cursor < len(expected) and message == expected[cursor]:
+            cursor += 1
+
+    if cursor != len(expected):
+        raise ValueError("Preset altered fixed history")
+
+    if any(
+        "{{" in message["content"] or "}}" in message["content"]
+        for message in result.messages
+    ):
+        raise ValueError("Unresolved template expressions")
+
+    metadata = {
+        "id": result.preset_id,
+        "source_sha256": result.source_sha256,
+        "character_id": character_id,
+        "applied_hooks": result.applied_hooks,
+        "unsupported_features": [
+            "external_sillytavern_extensions",
+            "tracker_regex_postprocessing",
+        ],
+    }
+    return result.messages, metadata
+
+
+def run_probe(
+    scenario_path,
+    config_path,
+    output_dir,
+    *,
+    preset_path=None,
+    preset_character_id=100001,
+    preset_backend_compat=None,
+):
     scenario_path = Path(scenario_path)
     config_path = Path(config_path)
     output_dir = Path(output_dir)
@@ -109,7 +196,35 @@ def run_probe(scenario_path, config_path, output_dir):
     scenario = json.loads(scenario_bytes)
     config = json.loads(config_bytes)
 
-    messages = build_messages(scenario)
+    preset_metadata = None
+    if preset_path is None:
+        messages = build_messages(scenario)
+    else:
+        messages, preset_metadata = build_preset_messages(
+            scenario,
+            preset_path,
+            preset_character_id,
+        )
+
+    preset_messages = None
+    compatibility_metadata = None
+
+    if preset_backend_compat is not None:
+        if preset_path is None:
+            raise ValueError(
+                "Backend compatibility requires a preset"
+            )
+        if preset_backend_compat != "alternating-chat-v1":
+            raise ValueError(
+                f"Unknown compatibility strategy: {preset_backend_compat}"
+            )
+
+        preset_messages = messages
+        messages, compatibility_metadata = lower_to_alternating_chat(
+            preset_messages
+        )
+        validate_strict_chat_template(messages)
+
     engine = config["backend"]
     model_identity = validate_model_identity(
         config["model_identity"]
@@ -165,6 +280,13 @@ def run_probe(scenario_path, config_path, output_dir):
         "status": "running",
         "created_utc": datetime.now(timezone.utc).isoformat(),
     }
+
+    if preset_metadata is not None:
+        record["preset"] = preset_metadata
+
+    if compatibility_metadata is not None:
+        record["preset_messages"] = preset_messages
+        record["preset_backend_compat"] = compatibility_metadata
 
     dump(run_dir / "result.json", record)
     started = time.perf_counter()
@@ -222,10 +344,25 @@ def main():
     parser.add_argument("--scenario", required=True)
     parser.add_argument("--config", required=True)
     parser.add_argument("--out", required=True)
+    parser.add_argument("--preset")
+    parser.add_argument(
+        "--preset-character-id",
+        type=int,
+        default=100001,
+    )
+    parser.add_argument(
+        "--preset-backend-compat",
+        choices=["alternating-chat-v1"],
+    )
     args = parser.parse_args()
 
     record, _ = run_probe(
-        args.scenario, args.config, args.out
+        args.scenario,
+        args.config,
+        args.out,
+        preset_path=args.preset,
+        preset_character_id=args.preset_character_id,
+        preset_backend_compat=args.preset_backend_compat,
     )
     if record["status"] != "complete":
         raise SystemExit(1)

@@ -3,7 +3,7 @@
 This is a structural subset, not a complete SillyTavern renderer.
 """
 
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
 
 from .prompt_chat import (
     ChatPromptConfig,
@@ -64,6 +64,7 @@ def render_st_chat_preset(
     character_id: int = DEFAULT_CHARACTER_ID,
     config: ChatPromptConfig | None = None,
     squash_system_messages: bool = False,
+    content_transform: Callable[[str, str], str] | None = None,
 ) -> list[dict[str, str]]:
     """Render the supported SillyTavern chat-preset subset.
 
@@ -113,6 +114,9 @@ def render_st_chat_preset(
             raise ValueError(
                 f"Prompt content must be text: {identifier}"
             )
+
+        if content_transform is not None and not item.get("marker", False):
+            content = content_transform(identifier, content)
 
         if not content.strip():
             continue

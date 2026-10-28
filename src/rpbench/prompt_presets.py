@@ -12,7 +12,15 @@ DEFAULT_CHARACTER_ID = 100000
 class SillyTavernChatPreset:
     """Preserve original preset JSON while exposing validated structure."""
 
-    def __init__(self, payload: dict[str, Any]):
+    def __init__(
+        self,
+        payload: dict[str, Any],
+        *,
+        allow_disabled_orphans: bool = False,
+    ):
+        if not isinstance(allow_disabled_orphans, bool):
+            raise ValueError("allow_disabled_orphans must be boolean")
+        self.allow_disabled_orphans = allow_disabled_orphans
         if not isinstance(payload, dict):
             raise ValueError("SillyTavern preset must be a JSON object")
 
@@ -20,10 +28,18 @@ class SillyTavernChatPreset:
         self._validate()
 
     @classmethod
-    def from_file(cls, path: str | Path):
+    def from_file(
+        cls,
+        path: str | Path,
+        *,
+        allow_disabled_orphans: bool = False,
+    ):
         with Path(path).open(encoding="utf-8") as stream:
             payload = json.load(stream)
-        return cls(payload)
+        return cls(
+            payload,
+            allow_disabled_orphans=allow_disabled_orphans,
+        )
 
     def to_dict(self) -> dict[str, Any]:
         """Return a defensive copy of the original JSON structure."""
@@ -112,9 +128,13 @@ class SillyTavernChatPreset:
                 enabled = entry.get("enabled")
 
                 if identifier not in identifiers:
-                    raise ValueError(
-                        f"Unknown ordered prompt: {identifier}"
-                    )
+                    if not (
+                        self.allow_disabled_orphans
+                        and enabled is False
+                    ):
+                        raise ValueError(
+                            f"Unknown ordered prompt: {identifier}"
+                        )
 
                 if identifier in seen:
                     raise ValueError(
@@ -149,7 +169,19 @@ class SillyTavernChatPreset:
                 result = []
 
                 for entry in group["order"]:
-                    item = deepcopy(prompts[entry["identifier"]])
+                    identifier = entry["identifier"]
+
+                    if identifier not in prompts:
+                        if (
+                            self.allow_disabled_orphans
+                            and entry["enabled"] is False
+                        ):
+                            continue
+                        raise ValueError(
+                            f"Unknown ordered prompt: {identifier}"
+                        )
+
+                    item = deepcopy(prompts[identifier])
                     item["enabled"] = entry["enabled"]
                     result.append(item)
 
