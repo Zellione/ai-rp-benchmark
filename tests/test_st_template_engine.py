@@ -154,3 +154,19 @@ def test_voyage_defect_not_repaired_for_other_source():
 
     assert repaired == original
     assert fixes == []
+
+
+
+def test_group_macro_solo_chat():
+    ctx = TemplateContext(
+        user_name="Player",
+        character_name="Mara Voss",
+    )
+    assert render_template(
+        "Characters: {{group}}", ctx
+    ) == "Characters: Mara Voss"
+
+
+def test_group_macro_case_insensitive():
+    ctx = TemplateContext(character_name="Mara Voss")
+    assert render_template("{{GROUP}}", ctx) == "Mara Voss"

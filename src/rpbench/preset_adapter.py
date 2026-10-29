@@ -60,7 +60,7 @@ class SillyTavernPresetAdapter:
         source: str | Path,
         *,
         preset_id: str,
-        squash_system_messages: bool = False,
+        squash_system_messages: bool | None = None,
         allow_disabled_orphans: bool = False,
     ):
         self.source = Path(source)
@@ -72,6 +72,12 @@ class SillyTavernPresetAdapter:
             allow_disabled_orphans=allow_disabled_orphans,
         )
         self.preset_id = preset_id
+        if squash_system_messages is None:
+            squash_system_messages = self.preset.to_dict().get(
+                "squash_system_messages", False
+            )
+        if not isinstance(squash_system_messages, bool):
+            raise ValueError("Invalid squash_system_messages setting")
         self.squash_system_messages = squash_system_messages
 
     def render(self, context: PresetContext) -> PresetResult:

@@ -134,7 +134,10 @@ def render_template(
                 output.append(context.user_name)
                 continue
 
-            if expression.lower() == "char":
+            if expression.lower() in {"char", "group"}:
+                # SillyTavern {{group}} resolves to the character
+                # name in solo chats. RPBench currently supports
+                # only the solo-chat rendering context.
                 if not context.character_name:
                     raise TemplateError("Missing character name")
                 output.append(context.character_name)

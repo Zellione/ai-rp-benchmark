@@ -137,3 +137,47 @@ def test_disabled_prompt_does_not_trigger_error(tmp_path):
     assert result.messages == [
         message.to_dict() for message in HISTORY
     ]
+
+
+
+def test_preset_squash_setting_loaded(tmp_path):
+    path = make_preset(tmp_path)
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    payload["squash_system_messages"] = True
+    path.write_text(json.dumps(payload), encoding="utf-8")
+
+    adapter = SillyTavernPresetAdapter(
+        path, preset_id="squash-test"
+    )
+    result = render(adapter)
+
+    assert adapter.squash_system_messages is True
+    assert result.messages[0]["role"] == "system"
+    assert result.messages[0]["content"] == (
+        "You are Mara.\nOriginal system"
+    )
+    assert result.messages[1]["role"] == "user"
+
+
+def test_explicit_squash_override(tmp_path):
+    path = make_preset(tmp_path)
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    payload["squash_system_messages"] = True
+    path.write_text(json.dumps(payload), encoding="utf-8")
+
+    adapter = SillyTavernPresetAdapter(
+        path,
+        preset_id="override-test",
+        squash_system_messages=False,
+    )
+
+    assert adapter.squash_system_messages is False
+    messages = render(adapter).messages
+
+    assert len(messages) == 3
+    assert [m["role"] for m in messages] == [
+        "system", "system", "user"
+    ]
+    assert messages[0]["content"] == "You are Mara."
+    assert messages[1]["content"] == "Original system"
+    assert messages[2]["content"] == "Hello"
