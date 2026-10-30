@@ -161,3 +161,50 @@ def test_compatibility_requires_preset(tmp_path):
     # separate negative coverage belongs in CLI integration tests.
     scenario = build_scenario(PROBES[0])
     assert len(build_messages(scenario)) == 6
+
+
+
+def test_v2_merges_consecutive_user_injections():
+    from rpbench.preset_backend_compat import (
+        lower_to_alternating_chat_v2,
+    )
+
+    original = [
+        {"role": "system", "content": "Main rules"},
+        {"role": "user", "content": "Previous player"},
+        {"role": "assistant", "content": "Previous NPC"},
+        {"role": "user", "content": "Depth-1 injection"},
+        {"role": "user", "content": "Current player"},
+        {"role": "user", "content": "Depth-0 injection"},
+        {"role": "system", "content": "NPC Genesis"},
+    ]
+
+    lowered, metadata = lower_to_alternating_chat_v2(original)
+    validate_strict_chat_template(lowered)
+
+    assert [m["role"] for m in lowered] == [
+        "system", "user", "assistant", "user",
+    ]
+    assert lowered[-1]["content"].startswith(
+        "Depth-1 injection\\n\\nCurrent player"
+        "\\n\\nDepth-0 injection"
+    )
+    assert lowered[-1]["content"].endswith(
+        "NPC Genesis\\n</rpbench-post-history-instructions>"
+    )
+    assert metadata["consecutive_user_messages_merged"] == 2
+    assert metadata["post_history_system_messages_relocated"] == 1
+    assert original[-1]["role"] == "system"
+
+
+def test_v2_rejects_in_history_system():
+    from rpbench.preset_backend_compat import (
+        lower_to_alternating_chat_v2,
+    )
+    with pytest.raises(ValueError, match="in-history"):
+        lower_to_alternating_chat_v2([
+            {"role": "user", "content": "A"},
+            {"role": "system", "content": "Mid"},
+            {"role": "assistant", "content": "B"},
+            {"role": "user", "content": "C"},
+        ])

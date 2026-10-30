@@ -234,7 +234,7 @@ def main():
     parser.add_argument("--character-id", type=int, default=100001)
     parser.add_argument(
         "--backend-compat",
-        choices=["alternating-chat-v1"],
+        choices=["alternating-chat-v1", "alternating-chat-v2"],
     )
     parser.add_argument("--retry-failed", action="store_true")
     args = parser.parse_args()

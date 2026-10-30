@@ -16,7 +16,10 @@ from .preset_adapter import (
 )
 from .prompt_models import PromptMessage
 from .prompt_chat import validate_strict_chat_template
-from .preset_backend_compat import lower_to_alternating_chat
+from .preset_backend_compat import (
+    lower_to_alternating_chat,
+    lower_to_alternating_chat_v2,
+)
 
 
 def validate_scenario(scenario):
@@ -185,6 +188,9 @@ def run_probe(
     preset_path=None,
     preset_character_id=100001,
     preset_backend_compat=None,
+    megumin_config=None,
+    megumin_engine_directory=None,
+    arfyjb_source=None,
 ):
     scenario_path = Path(scenario_path)
     config_path = Path(config_path)
@@ -197,7 +203,43 @@ def run_probe(
     config = json.loads(config_bytes)
 
     preset_metadata = None
-    if preset_path is None:
+    preset_messages = None
+    compatibility_metadata = None
+
+    if arfyjb_source is not None:
+        if any(value is not None for value in (
+            preset_path,
+            preset_backend_compat,
+            megumin_config,
+            megumin_engine_directory,
+        )):
+            raise ValueError("ArfyJB cannot be combined with another preset")
+
+        from .refusal_arfyjb import build_arfyjb_messages
+
+        messages, preset_metadata = build_arfyjb_messages(
+            scenario, source_path=arfyjb_source
+        )
+    elif megumin_config is not None:
+        if preset_path is not None or preset_backend_compat is not None:
+            raise ValueError(
+                "Megumin configuration cannot be combined with "
+                "standard preset options"
+            )
+        if megumin_engine_directory is None:
+            raise ValueError("Missing Megumin engine directory")
+
+        from .refusal_megumin import build_megumin_messages
+
+        messages, preset_metadata, preset_messages = (
+            build_megumin_messages(
+                scenario,
+                config_path=megumin_config,
+                engine_directory=megumin_engine_directory,
+            )
+        )
+        compatibility_metadata = preset_metadata["backend_compat"]
+    elif preset_path is None:
         messages = build_messages(scenario)
     else:
         messages, preset_metadata = build_preset_messages(
@@ -206,23 +248,24 @@ def run_probe(
             preset_character_id,
         )
 
-    preset_messages = None
-    compatibility_metadata = None
-
     if preset_backend_compat is not None:
         if preset_path is None:
             raise ValueError(
                 "Backend compatibility requires a preset"
             )
-        if preset_backend_compat != "alternating-chat-v1":
+        strategies = {
+            "alternating-chat-v1": lower_to_alternating_chat,
+            "alternating-chat-v2": lower_to_alternating_chat_v2,
+        }
+        if preset_backend_compat not in strategies:
             raise ValueError(
                 f"Unknown compatibility strategy: {preset_backend_compat}"
             )
 
         preset_messages = messages
-        messages, compatibility_metadata = lower_to_alternating_chat(
-            preset_messages
-        )
+        messages, compatibility_metadata = strategies[
+            preset_backend_compat
+        ](preset_messages)
         validate_strict_chat_template(messages)
 
     engine = config["backend"]
@@ -345,6 +388,9 @@ def main():
     parser.add_argument("--config", required=True)
     parser.add_argument("--out", required=True)
     parser.add_argument("--preset")
+    parser.add_argument("--megumin-config")
+    parser.add_argument("--megumin-engine-directory")
+    parser.add_argument("--arfyjb-source")
     parser.add_argument(
         "--preset-character-id",
         type=int,
@@ -352,7 +398,7 @@ def main():
     )
     parser.add_argument(
         "--preset-backend-compat",
-        choices=["alternating-chat-v1"],
+        choices=["alternating-chat-v1", "alternating-chat-v2"],
     )
     args = parser.parse_args()
 
@@ -363,6 +409,9 @@ def main():
         preset_path=args.preset,
         preset_character_id=args.preset_character_id,
         preset_backend_compat=args.preset_backend_compat,
+        megumin_config=args.megumin_config,
+        megumin_engine_directory=args.megumin_engine_directory,
+        arfyjb_source=args.arfyjb_source,
     )
     if record["status"] != "complete":
         raise SystemExit(1)
