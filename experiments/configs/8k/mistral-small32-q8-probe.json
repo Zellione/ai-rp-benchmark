@@ -1,0 +1,25 @@
+{
+  "backend": {
+    "name": "llamacpp",
+    "base_url": "http://127.0.0.1:8080",
+    "model": "mistral-small-3.2-q8",
+    "mode": "chat",
+    "timeout": 300
+  },
+  "sampling": {
+    "temperature": 0.8,
+    "top_p": 0.95,
+    "max_tokens": 8192
+  },
+  "model_identity": {
+    "id": "mistralai/Mistral-Small-3.2-24B-Instruct-2506",
+    "base_model": "Mistral-Small-3.2-24B",
+    "publisher": "mistralai",
+    "variant": "Instruct-2506",
+    "quantization": "Q8_0",
+    "source": {
+      "type": "local",
+      "path": "/data/models/bartowski/mistralai_Mistral-Small-3.2-24B-Instruct-2506-GGUF/mistralai_Mistral-Small-3.2-24B-Instruct-2506-Q8_0.gguf"
+    }
+  }
+}

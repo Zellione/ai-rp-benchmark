@@ -1,0 +1,41 @@
+{
+  "schema_version": 1,
+  "presets": [
+    {
+      "id": "voyage-v6",
+      "file": "sources/voyage-v6.json",
+      "version": "6",
+      "source_url": "https://huggingface.co/nohurry/sillytavern",
+      "sha256": "8df92f83c3bc2e40ef53344f7a43fbe0b967c0fb446f94b77e18928cffd23210",
+      "bytes": 89525,
+      "redistribution_verified": false
+    },
+    {
+      "id": "marinara-universal-v3",
+      "file": "sources/marinara-universal.json",
+      "version": "3.0",
+      "source_url": "https://huggingface.co/MarinaraSpaghetti/SillyTavern-Settings",
+      "sha256": "6f78be43c2f3fe48f45a97f7bc0904988e6b9f0438d606d77b64e73fe51c13db",
+      "bytes": 31664,
+      "redistribution_verified": false
+    },
+    {
+      "id": "freaky-frankenstein-max-plus",
+      "file": "sources/freaky-frankenstein-max-plus.json",
+      "version": "FF4 MAX+ Updated",
+      "source_url": "https://www.mediafire.com/file/0lu18dtlzssivdq/file",
+      "sha256": "cb7affa9dafb449e7ec9a8eace4d6b0d4a6245c5ca5a3875fc38a9b8cad4b3e8",
+      "bytes": 81001,
+      "redistribution_verified": false
+    },
+    {
+      "id": "freaky-frankenstein-bolt-plus",
+      "file": "sources/freaky-frankenstein-bolt-plus.json",
+      "version": "FF4 BOLT+ Updated",
+      "source_url": "https://www.mediafire.com/file/7rru0h961av6h26/file",
+      "sha256": "4df4e86aacaa9c5d5ba733bab01074b5c0a94f28b659928e2726550dd2408fe8",
+      "bytes": 41495,
+      "redistribution_verified": false
+    }
+  ]
+}

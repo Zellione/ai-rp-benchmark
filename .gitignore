@@ -25,3 +25,9 @@ runs/
 
 # Generated judge validation results
 /validation/results/
+
+# Third-party presets pending redistribution review
+/presets/sources/
+
+# Third-party Megumin engine pending redistribution review
+/presets/engines/megumin-v9/

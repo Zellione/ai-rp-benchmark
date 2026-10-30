@@ -1,0 +1,25 @@
+{
+  "backend": {
+    "name": "llamacpp",
+    "base_url": "http://127.0.0.1:8080",
+    "model": "davidau-twin-turbo-max-q6",
+    "mode": "chat",
+    "timeout": 300
+  },
+  "sampling": {
+    "temperature": 0.8,
+    "top_p": 0.95,
+    "max_tokens": 8192
+  },
+  "model_identity": {
+    "id": "DavidAU/Qwen3.8-27B-TWIN-TURBO",
+    "base_model": "Qwen3.8-27B",
+    "publisher": "DavidAU",
+    "variant": "MAX-MTP",
+    "quantization": "Q6_K",
+    "source": {
+      "type": "local",
+      "path": "/data/models/DavidAU/Qwen3.8-27B-TWIN-TURBO-Fable-Cold-Fusion-709-ULTRA-HERETIC-Uncensored-NM-DAU-NEO-MTP-GGUF/Qwen3.8-27B-TTURBO-Fable-C-Fusion-709-U-Httic-Uncen-NM-DAU-NEO-MAX-MTP-Q6_K.gguf"
+    }
+  }
+}

@@ -1,0 +1,47 @@
+{
+  "schema_version": 1,
+  "adapter": "megumin-v9",
+  "source": {
+    "repository": "Arif-salah/Megumin-Suite",
+    "commit": "c0abbb6142b821994c826c00cb7acf501e1a2078",
+    "preset": "presets/sources/megumin-v9-universal.json",
+    "preset_sha256": "6154edaee7b43fa324b27f7340107e0032862cea53afcc7a3fbed812ab742b5e"
+  },
+  "engine": "v9-core",
+  "cot": "cot-v9-english",
+  "character_id": 100001,
+  "profile": {
+    "userLanguage": "German",
+    "userPronouns": "off",
+    "personality": "engine",
+    "cotEnabled": true,
+    "thinkingV2": false,
+    "v9Limits": {
+      "leanMin": 300,
+      "leanMax": 400,
+      "fullMin": 700,
+      "fullMax": 1200
+    },
+    "toggles": {
+      "ooc": false,
+      "control": false
+    },
+    "addons": [],
+    "blocks": [],
+    "storyPlan": {
+      "enabled": false
+    },
+    "imageGen": {
+      "enabled": false
+    },
+    "dnRatio": {
+      "enabled": false,
+      "dialogue": 50
+    },
+    "onomatopoeia": {
+      "enabled": false
+    }
+  },
+  "backend_compat": "alternating-chat-v2",
+  "status": "adapter_not_implemented"
+}

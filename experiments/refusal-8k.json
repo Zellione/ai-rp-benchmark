@@ -1,0 +1,57 @@
+{
+  "schema_version": 1,
+  "name": "refusal-pilot-8k-v1",
+  "scenario_manifest": "scenarios/refusal-pilot/manifest.json",
+  "output_tokens": 8192,
+  "models": [
+    {
+      "id": "mistral-q8",
+      "config": "/scratch/rpbench-presets/configs/8k/mistral-small32-q8-probe.json"
+    },
+    {
+      "id": "davidau-max-q6",
+      "config": "/scratch/rpbench-presets/configs/8k/davidau-max-q6-probe.json"
+    }
+  ],
+  "presets": [
+    {
+      "id": "baseline",
+      "adapter": "baseline"
+    },
+    {
+      "id": "voyage-v6",
+      "adapter": "sillytavern",
+      "source": "presets/sources/voyage-v6.json",
+      "backend_compat": "alternating-chat-v1"
+    },
+    {
+      "id": "marinara-v3",
+      "adapter": "sillytavern",
+      "source": "presets/sources/marinara-universal.json",
+      "backend_compat": "alternating-chat-v1"
+    },
+    {
+      "id": "freaky-frankenstein-max-plus",
+      "adapter": "sillytavern",
+      "source": "presets/sources/freaky-frankenstein-max-plus.json",
+      "backend_compat": "alternating-chat-v2"
+    },
+    {
+      "id": "freaky-frankenstein-bolt-plus",
+      "adapter": "sillytavern",
+      "source": "presets/sources/freaky-frankenstein-bolt-plus.json",
+      "backend_compat": "alternating-chat-v2"
+    },
+    {
+      "id": "megumin-v9-mirage",
+      "adapter": "megumin-v9",
+      "config": "presets/configs/megumin-v9-mirage.json",
+      "engine_directory": "/scratch/rpbench-presets/megumin-v9-engine"
+    },
+    {
+      "id": "arfyjb-universal",
+      "adapter": "arfyjb",
+      "source": "presets/sources/arfyjb-universal.json"
+    }
+  ]
+}
