@@ -537,7 +537,7 @@ def refresh_criteria(root, definition, observations, settings):
                 "sampling", {}
             ).get("max_tokens")
             max_attempts = settings.get("max_attempts", 1)
-            if base_budget == 16384:
+            if base_budget in {8192, 16384}:
                 max_attempts = max(max_attempts, 2)
 
             retry_at_32k = False
@@ -556,7 +556,10 @@ def refresh_criteria(root, definition, observations, settings):
                         **settings,
                         "sampling": {
                             **settings["sampling"],
-                            "max_tokens": 32768,
+                            "max_tokens": (
+                                16384 if base_budget == 8192
+                                else 32768
+                            ),
                         },
                     }
 
@@ -617,11 +620,11 @@ def refresh_criteria(root, definition, observations, settings):
                     socket.timeout,
                     urllib.error.URLError,
                 ) as error:
-                    # Only a 16K token-limit failure triggers
-                    # a 32K retry of the original request.
+                    # Escalate exhausted thinking budgets without
+                    # modifying the archived evaluator configuration.
                     if (
-                        base_budget == 16384
-                        and attempt_budget == 16384
+                        base_budget in {8192, 16384}
+                        and attempt_budget == base_budget
                         and captured.get("finish_reason") == "length"
                     ):
                         retry_at_32k = True

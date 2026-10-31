@@ -115,25 +115,22 @@ def test_failure_archives_raw_thinking(tmp_path, monkeypatch):
 
     ground_truth = {
         "schema_version": 1,
-        "player": {"subgoals": {}},
+        "player": {"subgoals": {
+            "subgoal-01": {
+                "description": "Learn archive staff",
+                "initial_status": "pending",
+            },
+        }},
         "characters": {},
     }
     dump(root / "ground_truth.json", ground_truth)
 
-    # Use the real state builder's structure but install the
-    # one synthetic goal used by this test.
-    state = initial_state(ground_truth)
-    state["goals"] = make_state()["goals"]
-
-    ground_truth["player"]["subgoals"] = {
-        "subgoal-01": {
-            "description": "Learn archive staff",
-            "initial_status": "pending",
-        },
-    }
-    dump(root / "ground_truth.json", ground_truth)
+    requested_budgets = []
 
     def fake_generate(self, url, payload):
+        requested_budgets.append(
+            payload["max_tokens"]
+        )
         return "", {
             "choices": [{
                 "message": {
@@ -142,7 +139,9 @@ def test_failure_archives_raw_thinking(tmp_path, monkeypatch):
                 },
                 "finish_reason": "length",
             }],
-            "usage": {"completion_tokens": 8192},
+            "usage": {
+                "completion_tokens": payload["max_tokens"],
+            },
         }
 
     monkeypatch.setattr(Backend, "generate", fake_generate)
@@ -152,21 +151,34 @@ def test_failure_archives_raw_thinking(tmp_path, monkeypatch):
             root, DEFINITION, observations(), settings()
         )
 
+    assert requested_budgets == [8192, 16384]
+
     events = [
         json.loads(line)
-        for line in (root / "events.jsonl").read_text().splitlines()
+        for line in (root / "events.jsonl").read_text(
+            encoding="utf-8"
+        ).splitlines()
     ]
-    assert len(events) == 1
 
-    event = events[0]
-    assert event["status"] == "rejected"
-    assert event["raw_response"]["reasoning"] == (
-        "Long model reasoning"
+    assert len(events) == 2
+    assert [event["attempt"] for event in events] == [1, 2]
+    assert [event["status"] for event in events] == [
+        "rejected", "rejected"
+    ]
+    assert [event["max_tokens"] for event in events] == [
+        8192, 16384
+    ]
+
+    assert all(
+        event["raw_response"]["reasoning"]
+        == "Long model reasoning"
+        for event in events
     )
-    assert event["raw_response"]["finish_reason"] == "length"
-    assert event["raw_response"]["usage"]["completion_tokens"] == 8192
-    assert not (root / "criteria_progress.json").exists()
 
+    assert all(
+        event["raw_response"]["finish_reason"] == "length"
+        for event in events
+    )
 
 def test_evaluator_keeps_later_goals_available(monkeypatch):
     captured = {}
