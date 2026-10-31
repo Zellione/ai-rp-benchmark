@@ -1,0 +1,10 @@
+{
+  "name": "Alex",
+  "persona": "Ein geduldiger Ermittler, der aufmerksam zuhört, Fragen stellt und andere Entscheidungen respektiert.",
+  "main_goal": "Herausfinden, wo der Schlüssel versteckt ist.",
+  "subgoals": [
+    "Maras Vertrauen gewinnen",
+    "Die Umstände des Verschwindens verstehen",
+    "Nach Hinweisen im Archiv fragen"
+  ]
+}

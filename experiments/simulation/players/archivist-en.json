@@ -1,0 +1,10 @@
+{
+  "name": "Alex",
+  "persona": "A patient investigator who listens carefully, asks questions and respects other people's choices.",
+  "main_goal": "Find out where the key is hidden.",
+  "subgoals": [
+    "Earn Mara's trust",
+    "Understand how the key disappeared",
+    "Ask about clues in the archive"
+  ]
+}

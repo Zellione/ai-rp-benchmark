@@ -1,0 +1,19 @@
+{
+  "name": "Alex",
+  "persona": "Ein geduldiger Ermittler, der beobachtet, nachfragt und weder fremde Handlungen noch Ermittlungserfolge vorwegnimmt.",
+  "main_goal": "Den verschwundenen Archivschlüssel auf rechtmäßigem Weg finden, sichern und die Untersuchung dokumentieren.",
+  "subgoals": [
+    "Maras Zuständigkeit für den Archivbestand klären",
+    "Die Regeln für die Einsicht in öffentliche Archivunterlagen klären",
+    "Erlaubnis zur Einsicht in das Besucherregister erhalten",
+    "Den relevanten Registereintrag untersuchen",
+    "Die Identität des auffälligen Besuchers klären",
+    "Den Ablauf am Tag des Verschwindens rekonstruieren",
+    "Einen überprüfbaren Widerspruch in den Aufzeichnungen finden",
+    "Eine Genehmigung für die geschützten Unterlagen erhalten",
+    "Die freigegebenen Tresorunterlagen tatsächlich untersuchen",
+    "Den wahrscheinlichen Aufbewahrungsort des Schlüssels erschließen",
+    "Den verschwundenen Schlüssel tatsächlich sichern",
+    "Die Untersuchung mit dokumentiertem Ergebnis abschließen"
+  ]
+}

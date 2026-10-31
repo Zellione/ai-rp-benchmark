@@ -10,6 +10,9 @@ from collections.abc import Mapping, Sequence
 from .prompt_models import PromptMessage
 from .prompt_presets import SillyTavernChatPreset
 from .prompt_st_chat import render_st_chat_preset
+from .preset_adapter import (
+    SillyTavernPresetAdapter, render_with_adapter,
+)
 
 
 def render_npc_chat_messages(
@@ -20,6 +23,8 @@ def render_npc_chat_messages(
     character_name: str,
     user_name: str,
     squash_system_messages: bool = False,
+    character_id: int = 100000,
+    source_sha256: str | None = None,
 ) -> list[dict[str, str]]:
     """Render an NPC request with a SillyTavern chat preset.
 
@@ -66,11 +71,28 @@ def render_npc_chat_messages(
             )
         )
 
+    if source_sha256 is not None:
+        adapter = SillyTavernPresetAdapter.from_snapshot(
+            preset.to_dict(),
+            source_sha256,
+            squash_system_messages=squash_system_messages,
+        )
+        return render_with_adapter(
+            adapter,
+            history,
+            markers=marker_content,
+            character_name=character_name,
+            user_name=user_name,
+            character_id=character_id,
+        ).messages
+
+    # Legacy snapshots retain their historical rendering behavior.
     return render_st_chat_preset(
         preset,
         history,
         marker_content,
         character_name=character_name,
         user_name=user_name,
+        character_id=character_id,
         squash_system_messages=squash_system_messages,
     )

@@ -1,0 +1,19 @@
+{
+  "name": "Alex",
+  "persona": "A patient investigator who observes, asks questions and never presupposes another person's actions or success.",
+  "main_goal": "Lawfully locate and secure the missing archive key, then document the investigation.",
+  "subgoals": [
+    "Establish Mara's authority over the archive collection",
+    "Establish the procedure for consulting public archive records",
+    "Obtain permission to examine the visitor register",
+    "Examine the relevant visitor-register entry",
+    "Establish the suspicious visitor's identity",
+    "Reconstruct events on the day of the disappearance",
+    "Find a verifiable discrepancy in the records",
+    "Obtain authorization to consult restricted records",
+    "Actually examine the authorized vault records",
+    "Deduce the likely location of the key",
+    "Physically recover the missing key",
+    "Conclude the investigation with a documented outcome"
+  ]
+}

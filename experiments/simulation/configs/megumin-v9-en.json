@@ -1,0 +1,28 @@
+{
+  "backend": {
+    "name": "llamacpp",
+    "base_url": "http://127.0.0.1:8080",
+    "model": "mistral-small-3.2-q8",
+    "mode": "chat",
+    "timeout": 300
+  },
+  "sampling": {
+    "temperature": 0.8,
+    "top_p": 0.95,
+    "max_tokens": 8192
+  },
+  "player_sampling": {
+    "temperature": 0.7,
+    "top_p": 0.95,
+    "max_tokens": 4096
+  },
+  "runtime": {
+    "empty_response_retries": 1,
+    "megumin_npc": {
+      "config": "../profiles/megumin-v9-en.json",
+      "engine_directory": "../../../presets/engines/megumin-v9",
+      "character_name": "Mara",
+      "user_name": "Alex"
+    }
+  }
+}

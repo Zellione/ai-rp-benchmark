@@ -80,6 +80,41 @@ class SillyTavernPresetAdapter:
             raise ValueError("Invalid squash_system_messages setting")
         self.squash_system_messages = squash_system_messages
 
+    @classmethod
+    def from_snapshot(
+        cls,
+        payload,
+        source_sha256,
+        *,
+        preset_id="simulation-st-snapshot",
+        squash_system_messages=None,
+    ):
+        """Restore the exact adapter logic without reopening source files."""
+        if (
+            not isinstance(source_sha256, str)
+            or len(source_sha256) != 64
+            or any(c not in "0123456789abcdef" for c in source_sha256)
+        ):
+            raise ValueError("Invalid preset source SHA-256")
+
+        obj = cls.__new__(cls)
+        obj.source = None
+        obj.source_sha256 = source_sha256
+        obj.preset = SillyTavernChatPreset(
+            payload, allow_disabled_orphans=True
+        )
+        obj.preset_id = preset_id
+
+        if squash_system_messages is None:
+            squash_system_messages = payload.get(
+                "squash_system_messages", False
+            )
+        if type(squash_system_messages) is not bool:
+            raise ValueError("Invalid squash_system_messages")
+
+        obj.squash_system_messages = squash_system_messages
+        return obj
+
     def render(self, context: PresetContext) -> PresetResult:
         ordered = self.preset.ordered_prompts(
             context.character_id

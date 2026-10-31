@@ -1,0 +1,251 @@
+{
+  "backend": {
+    "name": "llamacpp",
+    "base_url": "http://127.0.0.1:8080",
+    "model": "mistral-small-3.2-q8",
+    "mode": "chat",
+    "timeout": 300
+  },
+  "sampling": {
+    "temperature": 0.8,
+    "top_p": 0.95,
+    "max_tokens": 8192
+  },
+  "player_sampling": {
+    "temperature": 0.7,
+    "top_p": 0.95,
+    "max_tokens": 4096
+  },
+  "runtime": {
+    "empty_response_retries": 1,
+    "controlled_player": true,
+    "player_knowledge_rules": [],
+    "goal_criteria": {
+      "schema_version": 1,
+      "goals": {
+        "subgoal-01": {
+          "requires": [],
+          "criteria": [
+            {
+              "id": "role",
+              "description": "Mara bestätigt ihre konkrete Funktion und Zuständigkeit für den Archivbestand. Eine bloße Berufsbezeichnung ohne Zuständigkeit reicht nicht.",
+              "evidence_contains": "role"
+            },
+            {
+              "id": "supervision",
+              "description": "Alex erfährt, wer über Maras Befugnisse hinausgehende Zugänge genehmigen darf. Eine Vermutung reicht nicht.",
+              "evidence_contains": "supervision"
+            }
+          ]
+        },
+        "subgoal-02": {
+          "requires": [
+            "subgoal-01"
+          ],
+          "criteria": [
+            {
+              "id": "rules",
+              "description": "Mara erklärt mindestens eine verbindliche Voraussetzung für die Einsicht in öffentliche Archivunterlagen.",
+              "evidence_contains": "rules"
+            },
+            {
+              "id": "request",
+              "description": "Alex stellt einen konkreten Antrag oder eine konkrete Anfrage zur Einsicht. Eine bloße Absichtserklärung genügt nicht.",
+              "evidence_contains": "request"
+            }
+          ]
+        },
+        "subgoal-03": {
+          "requires": [
+            "subgoal-02"
+          ],
+          "criteria": [
+            {
+              "id": "approval",
+              "description": "Mara erteilt ausdrücklich die Erlaubnis zur Einsicht in das Besucherregister. Ein Vorschlag oder eine vage Möglichkeit zählt nicht.",
+              "evidence_contains": "approval"
+            },
+            {
+              "id": "availability",
+              "description": "Das Besucherregister wird Alex tatsächlich zur Einsicht bereitgestellt. Nur die Erwähnung des Registers zählt nicht.",
+              "evidence_contains": "availability"
+            }
+          ]
+        },
+        "subgoal-04": {
+          "requires": [
+            "subgoal-03"
+          ],
+          "criteria": [
+            {
+              "id": "entry",
+              "description": "Alex liest oder erhält den konkreten Registereintrag vom Tag des Schlüsselverschwindens.",
+              "evidence_contains": "entry"
+            },
+            {
+              "id": "details",
+              "description": "Aus dem Eintrag werden mindestens Uhrzeit und Identität oder Kennzeichnung des Besuchers festgestellt.",
+              "evidence_contains": "details"
+            }
+          ]
+        },
+        "subgoal-05": {
+          "requires": [
+            "subgoal-04"
+          ],
+          "criteria": [
+            {
+              "id": "name",
+              "description": "Ein konkreter Name oder eine eindeutig überprüfbare Identität des Besuchers wird ermittelt.",
+              "evidence_contains": "name"
+            },
+            {
+              "id": "corroboration",
+              "description": "Diese Identität wird durch einen zweiten Hinweis oder eine unabhängige Archivinformation gestützt. Eine reine Vermutung genügt nicht.",
+              "evidence_contains": "corroboration"
+            }
+          ]
+        },
+        "subgoal-06": {
+          "requires": [
+            "subgoal-04"
+          ],
+          "criteria": [
+            {
+              "id": "last-seen",
+              "description": "Alex ermittelt einen konkreten Zeitpunkt oder Zeitraum, zu dem der Schlüssel zuletzt nachweislich vorhanden war.",
+              "evidence_contains": "last-seen"
+            },
+            {
+              "id": "sequence",
+              "description": "Mindestens zwei relevante Ereignisse werden in eine belegte zeitliche Reihenfolge gebracht.",
+              "evidence_contains": "sequence"
+            }
+          ]
+        },
+        "subgoal-07": {
+          "requires": [
+            "subgoal-05",
+            "subgoal-06"
+          ],
+          "criteria": [
+            {
+              "id": "contradiction",
+              "description": "Zwei konkret benannte Informationen aus Aussagen oder Dokumenten widersprechen sich sachlich.",
+              "evidence_contains": "contradiction"
+            },
+            {
+              "id": "verification",
+              "description": "Alex überprüft den Widerspruch anhand einer weiteren verfügbaren Quelle oder erhält eine konkrete Bestätigung.",
+              "evidence_contains": "verification"
+            }
+          ]
+        },
+        "subgoal-08": {
+          "requires": [
+            "subgoal-07"
+          ],
+          "criteria": [
+            {
+              "id": "application",
+              "description": "Alex richtet ein konkretes Zugangsgesuch an die zuständige Stelle. Ein allgemeiner Wunsch reicht nicht.",
+              "evidence_contains": "application"
+            },
+            {
+              "id": "authorization",
+              "description": "Die zuständige Stelle erteilt die erforderliche Genehmigung ausdrücklich. Eine bloße Einladung zur Antragstellung zählt nicht.",
+              "evidence_contains": "authorization"
+            }
+          ]
+        },
+        "subgoal-09": {
+          "requires": [
+            "subgoal-08"
+          ],
+          "criteria": [
+            {
+              "id": "access",
+              "description": "Alex erhält tatsächlichen Zugang zu den ausdrücklich freigegebenen Tresorunterlagen.",
+              "evidence_contains": "access"
+            },
+            {
+              "id": "document",
+              "description": "Alex liest einen bestimmten Eintrag und erfährt dessen konkrete Bedeutung für die Schlüsseluntersuchung.",
+              "evidence_contains": "document"
+            }
+          ]
+        },
+        "subgoal-10": {
+          "requires": [
+            "subgoal-07",
+            "subgoal-09"
+          ],
+          "criteria": [
+            {
+              "id": "clue",
+              "description": "Alex erhält einen konkreten Hinweis auf einen prüfbaren Aufbewahrungsort. Eine unspezifische Vermutung genügt nicht.",
+              "evidence_contains": "clue"
+            },
+            {
+              "id": "reasoning",
+              "description": "Alex verbindet den Hinweis nachvollziehbar mit mindestens einem zuvor ermittelten Beleg.",
+              "evidence_contains": "reasoning"
+            }
+          ]
+        },
+        "subgoal-11": {
+          "requires": [
+            "subgoal-10"
+          ],
+          "criteria": [
+            {
+              "id": "found",
+              "description": "Der echte gesuchte Schlüssel wird am überprüften Ort tatsächlich gefunden. Eine Behauptung oder Vermutung genügt nicht.",
+              "evidence_contains": "found"
+            },
+            {
+              "id": "custody",
+              "description": "Der Schlüssel wird nachvollziehbar in sichere Verwahrung genommen oder an eine berechtigte Person übergeben.",
+              "evidence_contains": "custody"
+            }
+          ]
+        },
+        "subgoal-12": {
+          "requires": [
+            "subgoal-11"
+          ],
+          "criteria": [
+            {
+              "id": "report",
+              "description": "Alex fasst die überprüften Befunde, den Schlüsselfund und die wesentlichen Belege konkret zusammen.",
+              "evidence_contains": "report"
+            },
+            {
+              "id": "handover",
+              "description": "Eine zuständige Person erhält den Bericht oder bestätigt die ordnungsgemäße abschließende Übergabe.",
+              "evidence_contains": "handover"
+            }
+          ]
+        }
+      }
+    },
+    "semantic_evaluator": {
+      "mode": "llm",
+      "id": "archivist-quest-v1-deepseek-de",
+      "backend": {
+        "name": "nanogpt",
+        "base_url": "https://nano-gpt.com/api",
+        "model": "deepseek/deepseek-v4.1-flash:thinking",
+        "api_key_env": "NANOGPT_API_KEY",
+        "timeout": 300
+      },
+      "sampling": {
+        "temperature": 1.0,
+        "top_p": 0.95,
+        "max_tokens": 8192
+      },
+      "max_attempts": 2,
+      "quest_scheduler": "direct_supersession"
+    }
+  }
+}

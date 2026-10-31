@@ -1,0 +1,73 @@
+{
+  "backend": {
+    "name": "llamacpp",
+    "base_url": "http://127.0.0.1:8080",
+    "model": "mistral-small-3.2-q8",
+    "mode": "chat",
+    "timeout": 300
+  },
+  "sampling": {
+    "temperature": 0.8,
+    "top_p": 0.95,
+    "max_tokens": 8192
+  },
+  "player_sampling": {
+    "temperature": 0.7,
+    "top_p": 0.95,
+    "max_tokens": 4096
+  },
+  "runtime": {
+    "empty_response_retries": 1,
+    "controlled_player": true,
+    "player_knowledge_rules": [],
+    "goal_criteria": {
+      "schema_version": 1,
+      "goals": {
+        "subgoal-01": {
+          "criteria": [
+            {
+              "id": "trust-cooperation",
+              "description": "Mara zeigt konkrete freiwillige Kooperation mit Alex, die über bloße Höflichkeit hinausgeht. Ein freundlicher Ton allein reicht nicht.",
+              "evidence_contains": "Zusammenarbeit"
+            }
+          ]
+        },
+        "subgoal-02": {
+          "criteria": [
+            {
+              "id": "disappearance-information",
+              "description": "Alex erhält eine konkrete, glaubwürdige Information über die Umstände des Schlüsselverschwindens. Allgemeine Spekulationen reichen nicht.",
+              "evidence_contains": "Schlüssel"
+            }
+          ]
+        },
+        "subgoal-03": {
+          "criteria": [
+            {
+              "id": "archive-clue",
+              "description": "Alex erhält von Mara einen konkreten Hinweis auf einen untersuchbaren Gegenstand, Ort oder Eintrag im Archiv. Eine allgemeine Einladung zum Nachfragen reicht nicht.",
+              "evidence_contains": "Archiv"
+            }
+          ]
+        }
+      }
+    },
+    "semantic_evaluator": {
+      "mode": "llm",
+      "id": "deepseek-v4.1-flash-thinking-nanogpt-v1",
+      "backend": {
+        "name": "nanogpt",
+        "base_url": "https://nano-gpt.com/api",
+        "model": "deepseek/deepseek-v4.1-flash:thinking",
+        "api_key_env": "NANOGPT_API_KEY",
+        "timeout": 300
+      },
+      "sampling": {
+        "temperature": 1.0,
+        "top_p": 0.95,
+        "max_tokens": 8192
+      },
+      "max_attempts": 2
+    }
+  }
+}
