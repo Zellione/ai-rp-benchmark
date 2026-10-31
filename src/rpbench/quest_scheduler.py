@@ -12,7 +12,10 @@ def plan_goal_evaluations(state, definition, progress):
     current = select_player_goal(state, definition)
 
     active_goal_id = (
-        current["id"] if current is not None else None
+        current["id"]
+        if current is not None
+        and current["id"] in definition["goals"]
+        else None
     )
 
     candidates = []
