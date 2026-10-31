@@ -74,11 +74,20 @@ def build_controlled_player_instruction(
     guidance = (
         "CONTROLLED PLAYER OBJECTIVE:\n"
         f"Current intermediate goal: {goal['description']}\n"
-        "Use the actual NPC response to choose your next action.\n"
-        "If blocked, investigate, negotiate, or try another approach.\n"
-        "Do not force the NPC to cooperate or narrate success.\n"
+        "Use the actual NPC response and established facts to choose "
+        "one concrete next action toward the current goal.\n"
+        "If you already have enough information to ask, inspect, "
+        "apply, verify, or act, do so now rather than repeatedly "
+        "discussing preparation.\n"
+        "Do not repeatedly ask for information already established.\n"
+        "Do not leave a productive interaction or end the conversation "
+        "merely out of politeness while the current goal is unresolved.\n"
+        "If genuinely blocked, investigate, negotiate, or try a "
+        "different plausible approach.\n"
+        "Never assume NPC cooperation, invent documents, fabricate "
+        "evidence, or narrate another character's decisions.\n"
         "Do not independently mark goals as completed.\n"
-        "Keep pursuing the broader goal without rushing."
+        "Write natural roleplay; avoid mechanical checklist dialogue."
     )
 
     if criteria_progress is not None:
