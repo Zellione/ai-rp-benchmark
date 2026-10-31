@@ -94,9 +94,32 @@ def plan(matrix_path):
 
         scenario_path = resolve(base, scenario["scenario"])
         player_path = resolve(base, scenario["player"])
-        config_path = resolve(base, preset["config"])
+        if ("config" in preset) == ("configs_by_language" in preset):
+            raise ValueError(
+                "Preset requires exactly config or configs_by_language"
+            )
+
+        if "configs_by_language" in preset:
+            mapping = preset["configs_by_language"]
+            if (
+                not isinstance(mapping, dict)
+                or set(mapping) != {"de", "en"}
+            ):
+                raise ValueError("Expected de/en preset config mapping")
+            config_reference = mapping[language]
+        else:
+            config_reference = preset["config"]
+
+        config_path = resolve(base, config_reference)
 
         config = load_json(config_path)
+        scenario_data = load_json(scenario_path)
+
+        if scenario_data.get("language", language) != language:
+            raise ValueError(
+                f"Scenario language mismatch: {scenario_path}"
+            )
+
         backend = config["backend"]
 
         if backend.get("model") != matrix["model"]["backend_model"]:
@@ -109,6 +132,12 @@ def plan(matrix_path):
             "player": digest(player_path),
             "config": digest(config_path),
         }
+
+        from .simulation_matrix_deps import dependency_digests
+
+        source_digests.update(
+            dependency_digests(scenario_path, config_path)
+        )
 
         identity = {
             "model": model,
@@ -137,7 +166,63 @@ def plan(matrix_path):
     return jobs
 
 
-def execute(jobs, output, dry_run=False, limit=None):
+def recover_failed_job(root, state, job):
+    """Resume exactly one existing archived simulation.
+
+    Never start a second run for the same experiment identity.
+    """
+    from .resume import resume_simulation
+
+    runs_root = root / "runs"
+    candidates = sorted(runs_root.glob("*/manifest.json"))
+
+    if len(candidates) != 1:
+        raise ValueError(
+            f"Expected exactly one archived simulation in {runs_root}; "
+            f"found {len(candidates)}"
+        )
+
+    run_dir = candidates[0].parent.resolve()
+    archived = load_json(candidates[0])
+
+    if archived.get("type") != "goal_driven_selfplay":
+        raise ValueError("Unexpected archived run type")
+
+    if archived.get("planned_turns") != job["identity"]["turns"]:
+        raise ValueError("Archived turn count differs from experiment")
+
+    for field, expected in (
+        ("scenario_sha256", job["identity"]["sources"]["scenario"]),
+        ("player_sha256", job["identity"]["sources"]["player"]),
+        ("config_sha256", job["identity"]["sources"]["config"]),
+    ):
+        if archived.get(field) != expected:
+            raise ValueError(f"Archived input mismatch: {field}")
+
+    if archived.get("status") != "complete":
+        print("  resuming:", run_dir, flush=True)
+        resume_simulation(run_dir)
+
+    final = load_json(run_dir / "manifest.json")
+
+    if (
+        final.get("status") != "complete"
+        or final.get("completed_turns") != job["identity"]["turns"]
+    ):
+        raise ValueError("Resume did not complete the planned simulation")
+
+    state["run_dir"] = str(run_dir)
+    state["status"] = "complete"
+    state.pop("error", None)
+    save_json(root / "job.json", state)
+
+    return run_dir
+
+
+def execute(
+    jobs, output, dry_run=False, limit=None,
+    resume_failed=False,
+):
     output = Path(output)
 
     if limit is not None and limit < 1:
@@ -176,10 +261,30 @@ def execute(jobs, output, dry_run=False, limit=None):
                 skipped += 1
                 continue
 
-            raise ValueError(
-                f"Previous unfinished job: {state_path}. "
-                "Inspect or resume its simulation archive before retrying."
-            )
+            if not resume_failed:
+                raise ValueError(
+                    f"Previous unfinished job: {state_path}. "
+                    "Use --resume-failed to recover the archived run."
+                )
+
+            if dry_run:
+                print("  dry-run: would resume existing archive", flush=True)
+                continue
+
+            if state["status"] not in {"failed", "running"}:
+                raise ValueError("Unsupported unfinished job status")
+
+            try:
+                run_dir = recover_failed_job(root, state, job)
+            except Exception as error:
+                state["status"] = "failed"
+                state["error"] = repr(error)
+                save_json(state_path, state)
+                raise
+
+            print("  recovered:", run_dir, flush=True)
+            completed += 1
+            continue
 
         if dry_run:
             print("  dry-run: no files written", flush=True)
@@ -229,6 +334,7 @@ def main():
     parser.add_argument("--matrix", required=True)
     parser.add_argument("--out", required=True)
     parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument("--resume-failed", action="store_true")
     parser.add_argument("--limit", type=int)
     args = parser.parse_args()
 
@@ -239,6 +345,7 @@ def main():
         args.out,
         dry_run=args.dry_run,
         limit=args.limit,
+        resume_failed=args.resume_failed,
     )
 
 
