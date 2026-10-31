@@ -5,7 +5,9 @@ from collections.abc import Mapping
 from .player_knowledge import format_player_knowledge
 
 
-def select_player_goal(state: Mapping) -> dict | None:
+def select_player_goal(
+    state: Mapping, definition=None
+) -> dict | None:
     """Select an active goal, otherwise the first pending goal.
 
     Goal completion is never inferred from model-generated text.
@@ -37,6 +39,10 @@ def select_player_goal(state: Mapping) -> dict | None:
             raise ValueError("Invalid goal description")
 
         if status in {"active", "pending"}:
+            if definition is not None:
+                from .goal_criteria import prerequisites_met
+                if not prerequisites_met(definition, state, identifier):
+                    continue
             candidates.append({
                 "id": identifier,
                 "description": description,
@@ -52,10 +58,10 @@ def select_player_goal(state: Mapping) -> dict | None:
 
 
 def build_controlled_player_instruction(
-    state: Mapping, criteria_progress=None
+    state: Mapping, criteria_progress=None, definition=None
 ) -> str:
     """Return goal guidance; never assert unverified success."""
-    goal = select_player_goal(state)
+    goal = select_player_goal(state, definition)
 
     if goal is None:
         return (
@@ -97,7 +103,8 @@ def build_controlled_player_instruction(
 
 
 def render_controlled_player_request(
-    messages, state, knowledge=None, criteria_progress=None
+    messages, state, knowledge=None, criteria_progress=None,
+    definition=None,
 ):
     """Add current goal guidance to a request without mutating history."""
     if (
@@ -110,7 +117,7 @@ def render_controlled_player_request(
         raise ValueError("Invalid player request history")
 
     guidance = build_controlled_player_instruction(
-        state, criteria_progress
+        state, criteria_progress, definition
     )
 
     if knowledge is not None:

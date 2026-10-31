@@ -1,6 +1,7 @@
 """Deterministic planning for economical goal adjudication."""
 
 from .player_controller import select_player_goal
+from .goal_criteria import prerequisites_met
 
 
 def plan_goal_evaluations(state, definition, progress):
@@ -8,7 +9,7 @@ def plan_goal_evaluations(state, definition, progress):
 
     This function performs no model calls and changes no state.
     """
-    current = select_player_goal(state)
+    current = select_player_goal(state, definition)
 
     active_goal_id = (
         current["id"] if current is not None else None
@@ -18,6 +19,9 @@ def plan_goal_evaluations(state, definition, progress):
 
     for goal_id, entry in definition["goals"].items():
         status = state["goals"][goal_id]["status"]
+
+        if not prerequisites_met(definition, state, goal_id):
+            continue
 
         if status in {"completed", "skipped", "failed"}:
             continue

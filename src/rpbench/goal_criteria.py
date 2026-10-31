@@ -36,12 +36,27 @@ def validate_goal_criteria(definition, state):
 
         if (
             not isinstance(definition_entry, Mapping)
-            or set(definition_entry) not in (
-                {"criteria"},
-                {"criteria", "superseded_by"},
-            )
+            or not {"criteria"} <= set(definition_entry)
+            or set(definition_entry) - {
+                "criteria", "superseded_by", "requires"
+            }
         ):
             raise ValueError("Invalid goal criteria entry")
+
+        requirements = definition_entry.get("requires", [])
+        if (
+            not isinstance(requirements, list)
+            or len(requirements) != len(set(
+                str(x) for x in requirements
+            ))
+            or any(
+                not isinstance(x, str)
+                or x not in goals
+                or x == goal_id
+                for x in requirements
+            )
+        ):
+            raise ValueError(f"Invalid goal prerequisites: {goal_id}")
 
         criteria = definition_entry["criteria"]
         if not isinstance(criteria, list) or not criteria:
@@ -91,7 +106,45 @@ def validate_goal_criteria(definition, state):
 
             seen.add(criterion["id"])
 
+    # Reject dependency cycles independently of dictionary order.
+    visited = set()
+    visiting = set()
+
+    def visit(goal_id):
+        if goal_id in visiting:
+            raise ValueError("Cyclic goal prerequisites")
+        if goal_id in visited:
+            return
+        visiting.add(goal_id)
+        for previous in goals[goal_id].get("requires", []):
+            visit(previous)
+        visiting.remove(goal_id)
+        visited.add(goal_id)
+
+    for goal_id in goals:
+        visit(goal_id)
+
     return deepcopy(definition)
+
+
+def prerequisites_met(definition, state, goal_id):
+    """Check prerequisites without excluding legacy player goals.
+
+    A player may have more subgoals than the criteria definition
+    covers. Goals without a criteria entry have no prerequisites
+    and retain their original eligibility.
+    """
+    if goal_id not in state["goals"]:
+        raise ValueError(f"Unknown player goal: {goal_id}")
+
+    entry = definition["goals"].get(goal_id)
+    if entry is None:
+        return True
+
+    return all(
+        state["goals"][previous]["status"] == "completed"
+        for previous in entry.get("requires", [])
+    )
 
 
 def replay_goal_criteria(definition, state, evaluations):

@@ -323,6 +323,12 @@ def _resume_simulation_locked(
         "backend": manifest["backend"],
     }
     backend = make_backend(backend_config)
+    player_backend = make_backend({
+        "backend": manifest.get("player_backend", manifest["backend"]),
+    })
+
+    if player_backend.mode not in {"chat", "completion"}:
+        raise ValueError("Resume player requires chat or completion mode")
 
     if backend.mode not in {"chat", "completion"}:
         raise ValueError(
@@ -533,7 +539,7 @@ def _resume_simulation_locked(
                 player_text = entries[-1]["text"]
             else:
                 player_text = generate_role(
-                    backend,
+                    player_backend,
                     render_controlled_player_request(
                         player_messages,
                         player_state,
@@ -542,6 +548,7 @@ def _resume_simulation_locked(
                         if criteria_definition is not None
                         and (root / "criteria_progress.json").exists()
                         else None,
+                        criteria_definition,
                     ) if controlled_player else player_messages,
                     player_sampling,
                     player_format,

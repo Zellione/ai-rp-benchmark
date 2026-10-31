@@ -508,6 +508,28 @@ def run_simulation(
     )
 
     player_prompt = create_player_prompt(player)
+
+    language = scenario.get("language", "en")
+    if language not in {"de", "en"}:
+        raise ValueError("Unsupported simulation language")
+
+    if language == "de":
+        player_prompt += (
+            "\\nLanguage requirement:\\n"
+            "- Write all player narration and spoken dialogue "
+            "in natural German.\\n"
+            "- Do not switch to English unless the story explicitly "
+            "requires an English quotation.\\n"
+        )
+    else:
+        player_prompt += (
+            "\\nLanguage requirement:\\n"
+            "- Write all player narration and spoken dialogue "
+            "in natural English.\\n"
+            "- Do not switch to German unless the story explicitly "
+            "requires a German quotation.\\n"
+        )
+
     npc_prompt, loaded_cards = build_npc_prompt(
         scenario, scenario_path
     )
@@ -577,6 +599,7 @@ def run_simulation(
             "created_utc": timestamp,
             "planned_turns": turns,
             "completed_turns": 0,
+            "language": language,
             "scenario": scenario,
             "player": player,
             "backend": {
@@ -670,6 +693,7 @@ def run_simulation(
                         if criteria_definition is not None
                         and (run_dir / "criteria_progress.json").exists()
                         else None,
+                        criteria_definition,
                     ) if controlled_player else player_messages,
                     player_sampling,
                     player_format,

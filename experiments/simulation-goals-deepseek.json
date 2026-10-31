@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "model": {
+    "id": "mistral-q8",
+    "backend_model": "mistral-small-3.2-q8"
+  },
+  "turns": 5,
+  "scenarios": [
+    {
+      "id": "archivist",
+      "language": "de",
+      "scenario": "simulation/scenarios/archivist-de.json",
+      "player": "simulation/players/archivist-de.json"
+    },
+    {
+      "id": "archivist",
+      "language": "en",
+      "scenario": "simulation/scenarios/archivist-en.json",
+      "player": "simulation/players/archivist-en.json"
+    }
+  ],
+  "presets": [
+    {
+      "id": "baseline-goals-deepseek",
+      "configs_by_language": {
+        "de": "simulation/configs/baseline-goals-deepseek-de.json",
+        "en": "simulation/configs/baseline-goals-deepseek-en.json"
+      }
+    }
+  ]
+}

@@ -9,7 +9,9 @@ from pathlib import Path
 from .core import Backend, append, dump, load
 from .progress_status import emit
 from .evaluator_llm import parse_evaluator_json
-from .goal_criteria import validate_goal_criteria
+from .goal_criteria import (
+    validate_goal_criteria, prerequisites_met,
+)
 from .semantic_criteria import (
     EVENT_TYPE,
     make_semantic_event,
@@ -492,7 +494,28 @@ def refresh_criteria(root, definition, observations, settings):
         else:
             goal_order = list(definition["goals"])
 
+        # Prerequisite eligibility is based on earlier turns.
+        # Do not unlock and assess the next quest stage retroactively
+        # using an outcome from this same NPC response.
+        previous_observations = [
+            item for item in observations
+            if item["turn"] < turn
+        ]
+        previous_events = [
+            event for event in accepted
+            if event["turn"] < turn
+        ]
+        eligibility_state, _, _ = advance_criteria_goals(
+            original, definition,
+            previous_observations, previous_events,
+        )
+
         for goal_id in goal_order:
+            if not prerequisites_met(
+                definition, eligibility_state, goal_id
+            ):
+                continue
+
             if (turn, goal_id) in checked:
                 continue
 
