@@ -91,7 +91,14 @@ Prior assessments are fallible; verify them against the text.
 Do not require all elements to appear in the same turn.
 When satisfied cumulatively, cite all essential source turns.
 A prior partial followed by an unrelated turn is not success.
-When essential evidence is absent, use not_satisfied.
+Preserve previously demonstrated partial progress when its source
+evidence remains relevant and has not been contradicted or retracted.
+The absence of NEW evidence alone does not justify downgrading an
+earlier partial assessment to not_satisfied.
+Prior assessments are not authoritative: if the original source
+does not actually support a necessary component, reassess it.
+When no required component is supported by the cumulative,
+still-valid evidence, use not_satisfied.
 
 Return exactly one JSON object:
 

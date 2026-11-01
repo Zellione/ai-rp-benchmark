@@ -42,7 +42,15 @@ def prior_partial_evidence(
             "npc_response": npc_by_turn[turn],
         }
 
-    return [
-        selected[turn]
-        for turn in sorted(selected)[-limit:]
-    ]
+    turns = sorted(selected)
+
+    if len(turns) <= limit:
+        retained = turns
+    elif limit == 1:
+        retained = turns[:1]
+    else:
+        # Keep the earliest partial evidence as an anchor.
+        # Fill remaining slots with the most recent sources.
+        retained = [turns[0]] + turns[-(limit - 1):]
+
+    return [selected[turn] for turn in retained]
