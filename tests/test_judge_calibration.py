@@ -250,3 +250,67 @@ def test_summary_counts_invalid_case_criteria():
     assert summary["invalid_cases"] == 1
     assert summary["criteria_scored"] == 1
     assert summary["criteria_total"] == 3
+
+
+
+def test_end_to_end_accuracy_penalizes_invalid_cases():
+    results = [
+        {
+            "case_id": "correct",
+            "status": "valid",
+            "comparison": [
+                {
+                    "criterion_id": "entry",
+                    "expected_status": "satisfied",
+                    "actual_status": "satisfied",
+                    "status_match": True,
+                    "expected_turn": 2,
+                    "actual_turn": 2,
+                    "turn_match": True,
+                },
+            ],
+            "normalizations": [],
+            "error": None,
+        },
+        {
+            "case_id": "invalid",
+            "status": "invalid",
+            "expected_criterion_ids": ["entry", "details"],
+            "comparison": [],
+            "normalizations": [],
+            "error": "Invalid evidence",
+        },
+    ]
+
+    summary = summarize(results)
+
+    assert summary["status_accuracy"] == 1.0
+    assert summary["criteria_total"] == 3
+    assert summary["end_to_end_correct"] == 1
+    assert summary["end_to_end_accuracy"] == pytest.approx(1 / 3)
+    assert summary["perfect_cases"] == 1
+    assert summary["perfect_case_rate"] == 0.5
+
+
+def test_end_to_end_accuracy_penalizes_wrong_turn():
+    results = [{
+        "case_id": "wrong-turn",
+        "status": "valid",
+        "comparison": [{
+            "criterion_id": "entry",
+            "expected_status": "satisfied",
+            "actual_status": "satisfied",
+            "status_match": True,
+            "expected_turn": 2,
+            "actual_turn": 3,
+            "turn_match": False,
+        }],
+        "normalizations": [],
+        "error": None,
+    }]
+
+    summary = summarize(results)
+
+    assert summary["status_accuracy"] == 1.0
+    assert summary["end_to_end_accuracy"] == 0.0
+    assert summary["perfect_cases"] == 0

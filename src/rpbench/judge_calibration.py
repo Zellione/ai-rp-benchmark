@@ -277,9 +277,16 @@ def calibrate_case(
 
 
 def summarize(results):
+    """Report conditional and end-to-end calibration accuracy."""
+
+    valid_results = [
+        result for result in results
+        if result["status"] == "valid"
+    ]
+
     rows = [
         row
-        for result in results if result["status"] == "valid"
+        for result in valid_results
         for row in result["comparison"]
     ]
 
@@ -288,34 +295,67 @@ def summarize(results):
         if row["expected_status"] == "satisfied"
     ]
 
-    valid = sum(
-        result["status"] == "valid" for result in results
+    criteria_total = sum(
+        len(result["comparison"])
+        if result["status"] == "valid"
+        else len(result.get("expected_criterion_ids", []))
+        for result in results
     )
 
-    return {
+    status_correct = sum(
+        row["status_match"] for row in rows
+    )
+
+    end_to_end_correct = sum(
+        row["status_match"]
+        and (
+            row["expected_status"] != "satisfied"
+            or row["turn_match"]
+        )
+        for row in rows
+    )
+
+    perfect_cases = sum(
+        bool(result["comparison"])
+        and all(
+            row["status_match"]
+            and (
+                row["expected_status"] != "satisfied"
+                or row["turn_match"]
+            )
+            for row in result["comparison"]
+        )
+        for result in valid_results
+    )
+
+    summary = {
         "cases": len(results),
-        "valid_cases": valid,
-        "invalid_cases": len(results) - valid,
+        "valid_cases": len(valid_results),
+        "invalid_cases": len(results) - len(valid_results),
         "criteria_scored": len(rows),
-        "criteria_total": sum(
-            len(result["comparison"])
-            if result["status"] == "valid"
-            else len(result.get("expected_criterion_ids", []))
-            for result in results
-        ),
-        "status_correct": sum(
-            row["status_match"] for row in rows
-        ),
+        "criteria_total": criteria_total,
+        "status_correct": status_correct,
         "status_accuracy": (
-            sum(row["status_match"] for row in rows) / len(rows)
+            status_correct / len(rows)
             if rows else None
         ),
         "satisfied_turn_correct": sum(
             row["turn_match"] for row in satisfied_rows
         ),
         "satisfied_turn_total": len(satisfied_rows),
+        "end_to_end_correct": end_to_end_correct,
+        "end_to_end_accuracy": (
+            end_to_end_correct / criteria_total
+            if criteria_total else None
+        ),
+        "perfect_cases": perfect_cases,
+        "perfect_case_rate": (
+            perfect_cases / len(results)
+            if results else None
+        ),
         "normalizations": sum(
-            len(result["normalizations"]) for result in results
+            len(result["normalizations"])
+            for result in results
         ),
         "results": [
             {
@@ -328,6 +368,8 @@ def summarize(results):
             for result in results
         ],
     }
+
+    return summary
 
 
 def run_suite(
