@@ -425,3 +425,66 @@ def test_external_definition_prevents_verdict_reuse(
         )
 
     assert len(calls) == 1
+
+
+
+def test_evidence_normalization_repairs_verified_text(tmp_path):
+    from rpbench.offline_goal_audit import normalize_evidence_refs
+
+    _, _, observations, verdict = fixture(tmp_path)
+
+    malformed = deepcopy(verdict)
+    ref = malformed["criteria"][0]["evidence"][0]
+    quote = ref.pop("quote")
+    ref["text"] = quote
+    ref["role_note"] = ref["role"]
+
+    original = deepcopy(malformed)
+
+    cleaned, changes = normalize_evidence_refs(
+        malformed, observations
+    )
+
+    assert malformed == original
+    assert len(changes) == 1
+    assert changes[0]["normalization"] == "text_to_quote"
+    assert changes[0]["removed_role_note"] is True
+    assert cleaned == verdict
+
+
+def test_evidence_normalization_rejects_unverified_text(tmp_path):
+    from rpbench.offline_goal_audit import normalize_evidence_refs
+
+    _, _, observations, verdict = fixture(tmp_path)
+
+    malformed = deepcopy(verdict)
+    ref = malformed["criteria"][0]["evidence"][0]
+    ref.pop("quote")
+    ref["text"] = "This fabricated evidence never happened."
+
+    cleaned, changes = normalize_evidence_refs(
+        malformed, observations
+    )
+
+    assert changes == []
+    assert cleaned == malformed
+
+
+def test_evidence_normalization_rejects_conflicting_role(tmp_path):
+    from rpbench.offline_goal_audit import normalize_evidence_refs
+
+    _, _, observations, verdict = fixture(tmp_path)
+
+    malformed = deepcopy(verdict)
+    ref = malformed["criteria"][0]["evidence"][0]
+    ref["text"] = ref.pop("quote")
+    ref["role_note"] = (
+        "player" if ref["role"] == "npc" else "npc"
+    )
+
+    cleaned, changes = normalize_evidence_refs(
+        malformed, observations
+    )
+
+    assert changes == []
+    assert cleaned == malformed

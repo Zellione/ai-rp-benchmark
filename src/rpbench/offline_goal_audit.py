@@ -321,6 +321,88 @@ def prepare(run, goal_id, model, base_url, max_tokens, goal_definition=None):
     return identity, definition, observations, request_context
 
 
+
+
+def normalize_evidence_refs(proposal, observations):
+    """Apply only transcript-verifiable evidence format repairs."""
+    from copy import deepcopy
+
+    normalized = deepcopy(proposal)
+    changes = []
+
+    if not isinstance(normalized, dict):
+        return normalized, changes
+
+    criteria = normalized.get("criteria")
+    if not isinstance(criteria, list):
+        return normalized, changes
+
+    lookup = {
+        (item["turn"], item["role"]): item["text"]
+        for item in observations
+    }
+
+    for criterion in criteria:
+        if not isinstance(criterion, dict):
+            continue
+
+        evidence = criterion.get("evidence")
+        if not isinstance(evidence, list):
+            continue
+
+        for index, ref in enumerate(evidence):
+            if not isinstance(ref, dict):
+                continue
+
+            keys = set(ref)
+
+            allowed = (
+                {"turn", "role", "text"},
+                {"turn", "role", "text", "role_note"},
+            )
+
+            if keys not in allowed:
+                continue
+
+            turn = ref["turn"]
+            role = ref["role"]
+            quote = ref["text"]
+
+            if (
+                type(turn) is not int
+                or role not in {"player", "npc"}
+                or not isinstance(quote, str)
+                or not quote.strip()
+            ):
+                continue
+
+            if (
+                "role_note" in ref
+                and ref["role_note"] != role
+            ):
+                continue
+
+            transcript = lookup.get((turn, role))
+
+            if transcript is None or quote not in transcript:
+                continue
+
+            evidence[index] = {
+                "turn": turn,
+                "role": role,
+                "quote": quote,
+            }
+
+            changes.append({
+                "criterion_id": criterion.get("criterion_id"),
+                "evidence_index": index,
+                "normalization": "text_to_quote",
+                "removed_role_note": "role_note" in ref,
+            })
+
+    return normalized, changes
+
+
 def audit(
     run, output, goal_id, model,
     base_url="https://nano-gpt.com/api/subscription",
@@ -459,6 +541,10 @@ def audit(
 
     proposal = parse_evaluator_json(content)
 
+    proposal, normalizations = normalize_evidence_refs(
+        proposal, observations
+    )
+
     verdict = validate_verdict(
         proposal, goal_id, definition, observations
     )
@@ -467,6 +553,7 @@ def audit(
         "schema_version": SCHEMA_VERSION,
         "identity_sha256": identity_hash,
         "verdict": verdict,
+        "normalizations": normalizations,
         "usage": usage,
         "finish_reason": finish_reason,
     }
