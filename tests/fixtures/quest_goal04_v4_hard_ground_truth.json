@@ -1,0 +1,376 @@
+{
+  "schema_version": 1,
+  "goal_id": "subgoal-04",
+  "definition_version": "quest-archivist-v4",
+  "language": "en",
+  "cases": [
+    {
+      "id": "delayed-disclosure",
+      "description": "A concrete entry is available before its visitor identity.",
+      "observations": [
+        {
+          "turn": 1,
+          "role": "player",
+          "text": "Show me the October 12 visitor register."
+        },
+        {
+          "turn": 1,
+          "role": "npc",
+          "text": "Mara places the register on the table."
+        },
+        {
+          "turn": 2,
+          "role": "player",
+          "text": "Which entry concerns that afternoon?"
+        },
+        {
+          "turn": 2,
+          "role": "npc",
+          "text": "The October 12 visitor entry records an arrival at 16:45. Its visitor field is covered."
+        },
+        {
+          "turn": 3,
+          "role": "player",
+          "text": "Can you uncover the visitor field?"
+        },
+        {
+          "turn": 3,
+          "role": "npc",
+          "text": "Mara uncovers the same entry. The visitor name is Leon Falk."
+        }
+      ],
+      "expected": {
+        "entry": {
+          "status": "satisfied",
+          "first_satisfied_turn": 2,
+          "evidence": [
+            {
+              "turn": 2,
+              "role": "npc",
+              "quote": "The October 12 visitor entry records an arrival at 16:45. Its visitor field is covered."
+            }
+          ],
+          "reason": "The specific visitor-register entry is available at turn 2."
+        },
+        "details": {
+          "status": "satisfied",
+          "first_satisfied_turn": 3,
+          "evidence": [
+            {
+              "turn": 2,
+              "role": "npc",
+              "quote": "The October 12 visitor entry records an arrival at 16:45. Its visitor field is covered."
+            },
+            {
+              "turn": 3,
+              "role": "npc",
+              "quote": "Mara uncovers the same entry. The visitor name is Leon Falk."
+            }
+          ],
+          "reason": "The same entry provides arrival time and identity by turn 3."
+        }
+      }
+    },
+    {
+      "id": "corrected-entry",
+      "description": "An unverified transcription is superseded by an authenticated entry.",
+      "observations": [
+        {
+          "turn": 1,
+          "role": "player",
+          "text": "What does the October 12 register show?"
+        },
+        {
+          "turn": 1,
+          "role": "npc",
+          "text": "Mara says: I have a preliminary transcription, Leon Falk at 16:45, but it has not been checked against the original visitor register."
+        },
+        {
+          "turn": 2,
+          "role": "player",
+          "text": "Can you check the original?"
+        },
+        {
+          "turn": 2,
+          "role": "npc",
+          "text": "Mara checks and says the preliminary transcription is erroneous. The original page is damaged and no entry can yet be read."
+        },
+        {
+          "turn": 3,
+          "role": "player",
+          "text": "Is there a legible original copy?"
+        },
+        {
+          "turn": 3,
+          "role": "npc",
+          "text": "Mara retrieves the authenticated duplicate of the October 12 visitor register. Its specific entry states: Leon Falk, arrival 17:10."
+        }
+      ],
+      "expected": {
+        "entry": {
+          "status": "satisfied",
+          "first_satisfied_turn": 3,
+          "evidence": [
+            {
+              "turn": 3,
+              "role": "npc",
+              "quote": "Mara retrieves the authenticated duplicate of the October 12 visitor register. Its specific entry states: Leon Falk, arrival 17:10."
+            }
+          ],
+          "reason": "A reliable original-register entry is supplied at turn 3."
+        },
+        "details": {
+          "status": "satisfied",
+          "first_satisfied_turn": 3,
+          "evidence": [
+            {
+              "turn": 3,
+              "role": "npc",
+              "quote": "Mara retrieves the authenticated duplicate of the October 12 visitor register. Its specific entry states: Leon Falk, arrival 17:10."
+            }
+          ],
+          "reason": "The authenticated entry contains both name and time."
+        }
+      }
+    },
+    {
+      "id": "player-assumption",
+      "description": "Player assertions cannot establish document contents.",
+      "observations": [
+        {
+          "turn": 1,
+          "role": "player",
+          "text": "I am sure Leon Falk entered at 16:45."
+        },
+        {
+          "turn": 1,
+          "role": "npc",
+          "text": "That is only your assumption. I have not consulted the visitor register."
+        },
+        {
+          "turn": 2,
+          "role": "player",
+          "text": "Then the register must confirm it."
+        },
+        {
+          "turn": 2,
+          "role": "npc",
+          "text": "We cannot know without examining the entry."
+        },
+        {
+          "turn": 3,
+          "role": "player",
+          "text": "I will record my theory as a fact."
+        },
+        {
+          "turn": 3,
+          "role": "npc",
+          "text": "Mara refuses to confirm any visitor name or arrival time."
+        }
+      ],
+      "expected": {
+        "entry": {
+          "status": "not_satisfied",
+          "first_satisfied_turn": null,
+          "evidence": [],
+          "reason": "No entry is supplied."
+        },
+        "details": {
+          "status": "not_satisfied",
+          "first_satisfied_turn": null,
+          "evidence": [],
+          "reason": "No register-derived fields are established."
+        }
+      }
+    },
+    {
+      "id": "duplicate-records",
+      "description": "Key ledger, access list and public visitor register stay separate.",
+      "observations": [
+        {
+          "turn": 1,
+          "role": "player",
+          "text": "What does the archive paperwork say?"
+        },
+        {
+          "turn": 1,
+          "role": "npc",
+          "text": "The key sign-out log records 16:20 on October 12."
+        },
+        {
+          "turn": 2,
+          "role": "npc",
+          "text": "The internal access list records Leon Falk at 16:15."
+        },
+        {
+          "turn": 3,
+          "role": "player",
+          "text": "Please consult the public visitor register instead."
+        },
+        {
+          "turn": 3,
+          "role": "npc",
+          "text": "Mara reads a specific October 12 public visitor-register entry: visitor designation LF-27, arrival 16:45."
+        },
+        {
+          "turn": 4,
+          "role": "npc",
+          "text": "The other documents do not establish who signed out the key."
+        }
+      ],
+      "expected": {
+        "entry": {
+          "status": "satisfied",
+          "first_satisfied_turn": 3,
+          "evidence": [
+            {
+              "turn": 3,
+              "role": "npc",
+              "quote": "Mara reads a specific October 12 public visitor-register entry: visitor designation LF-27, arrival 16:45."
+            }
+          ],
+          "reason": "The public register entry is read at turn 3."
+        },
+        "details": {
+          "status": "satisfied",
+          "first_satisfied_turn": 3,
+          "evidence": [
+            {
+              "turn": 3,
+              "role": "npc",
+              "quote": "Mara reads a specific October 12 public visitor-register entry: visitor designation LF-27, arrival 16:45."
+            }
+          ],
+          "reason": "Designation LF-27 and 16:45 come from the same entry."
+        }
+      }
+    },
+    {
+      "id": "explicit-denial",
+      "description": "A rumor incorrectly attributed to the register is explicitly denied.",
+      "observations": [
+        {
+          "turn": 1,
+          "role": "player",
+          "text": "Someone said the visitor register names Leon Falk at 16:45."
+        },
+        {
+          "turn": 1,
+          "role": "npc",
+          "text": "That statement came from an unofficial rumor, not a visitor-register entry."
+        },
+        {
+          "turn": 2,
+          "role": "player",
+          "text": "Does the original register establish it?"
+        },
+        {
+          "turn": 2,
+          "role": "npc",
+          "text": "The original register is unavailable, so I cannot confirm any specific entry."
+        },
+        {
+          "turn": 3,
+          "role": "player",
+          "text": "Perhaps the internal access list can substitute."
+        },
+        {
+          "turn": 3,
+          "role": "npc",
+          "text": "An internal access list is not the public visitor register."
+        }
+      ],
+      "expected": {
+        "entry": {
+          "status": "not_satisfied",
+          "first_satisfied_turn": null,
+          "evidence": [],
+          "reason": "No concrete entry is available."
+        },
+        "details": {
+          "status": "not_satisfied",
+          "first_satisfied_turn": null,
+          "evidence": [],
+          "reason": "No register-derived name/time pair is confirmed."
+        }
+      }
+    },
+    {
+      "id": "late-independent-entry",
+      "description": "A complete concrete entry first appears in the final turn.",
+      "observations": [
+        {
+          "turn": 1,
+          "role": "player",
+          "text": "I want to inspect the October 12 visitor register."
+        },
+        {
+          "turn": 1,
+          "role": "npc",
+          "text": "Mara says the register is stored in another room."
+        },
+        {
+          "turn": 2,
+          "role": "npc",
+          "text": "The reception note mentions an appointment with Leon Falk."
+        },
+        {
+          "turn": 3,
+          "role": "player",
+          "text": "The appointment note is not enough. Please retrieve the register."
+        },
+        {
+          "turn": 3,
+          "role": "npc",
+          "text": "Mara retrieves the register but has not opened it."
+        },
+        {
+          "turn": 4,
+          "role": "player",
+          "text": "Please locate and read the entry."
+        },
+        {
+          "turn": 4,
+          "role": "npc",
+          "text": "Mara opens the register but says the date is still unclear."
+        },
+        {
+          "turn": 5,
+          "role": "player",
+          "text": "Please check the October 12 page."
+        },
+        {
+          "turn": 5,
+          "role": "npc",
+          "text": "Mara reads the specific October 12 visitor-register entry: Leon Falk arrived at 16:45."
+        }
+      ],
+      "expected": {
+        "entry": {
+          "status": "satisfied",
+          "first_satisfied_turn": 5,
+          "evidence": [
+            {
+              "turn": 5,
+              "role": "npc",
+              "quote": "Mara reads the specific October 12 visitor-register entry: Leon Falk arrived at 16:45."
+            }
+          ],
+          "reason": "The first concrete visitor-register entry appears in turn 5."
+        },
+        "details": {
+          "status": "satisfied",
+          "first_satisfied_turn": 5,
+          "evidence": [
+            {
+              "turn": 5,
+              "role": "npc",
+              "quote": "Mara reads the specific October 12 visitor-register entry: Leon Falk arrived at 16:45."
+            }
+          ],
+          "reason": "Name and time are established in the final turn."
+        }
+      }
+    }
+  ]
+}
