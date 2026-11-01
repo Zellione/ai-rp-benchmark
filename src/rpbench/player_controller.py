@@ -58,10 +58,38 @@ def select_player_goal(
 
 
 def build_controlled_player_instruction(
-    state: Mapping, criteria_progress=None, definition=None
+    state: Mapping, criteria_progress=None, definition=None,
+    mode="action",
 ) -> str:
     """Return goal guidance; never assert unverified success."""
+    if mode not in {"action", "narrative"}:
+        raise ValueError("Invalid controlled player mode")
+
     goal = select_player_goal(state, definition)
+
+    if mode == "narrative":
+        objective = (
+            goal["description"]
+            if goal is not None
+            else "Continue the story according to established events."
+        )
+        return (
+            "CONTROLLED PLAYER NARRATIVE DIRECTION:\n"
+            f"Current narrative direction: {objective}\n"
+            "Treat this as an intention, not a mandatory milestone "
+            "or a checklist to complete this turn.\n"
+            "Respond naturally to the NPC, the atmosphere, "
+            "relationships, uncertainty, and consequences.\n"
+            "You may investigate, converse, negotiate, reflect, "
+            "change tactics, encounter setbacks, or develop "
+            "the relationship when appropriate.\n"
+            "Keep the story meaningful without rushing toward "
+            "a goal or deliberately stalling.\n"
+            "Do not invent documents, evidence, NPC cooperation, "
+            "or another character's actions and decisions.\n"
+            "Do not claim objective completion yourself.\n"
+            "Avoid mechanical checklist dialogue."
+        )
 
     if goal is None:
         return (
@@ -113,7 +141,7 @@ def build_controlled_player_instruction(
 
 def render_controlled_player_request(
     messages, state, knowledge=None, criteria_progress=None,
-    definition=None,
+    definition=None, mode="action",
 ):
     """Add current goal guidance to a request without mutating history."""
     if (
@@ -126,7 +154,7 @@ def render_controlled_player_request(
         raise ValueError("Invalid player request history")
 
     guidance = build_controlled_player_instruction(
-        state, criteria_progress, definition
+        state, criteria_progress, definition, mode
     )
 
     if knowledge is not None:

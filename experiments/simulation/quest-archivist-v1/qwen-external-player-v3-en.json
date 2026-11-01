@@ -1,0 +1,260 @@
+{
+  "backend": {
+    "name": "llamacpp",
+    "base_url": "http://127.0.0.1:8080",
+    "model": "davidau-twin-turbo-max-q6",
+    "mode": "chat",
+    "timeout": 300
+  },
+  "sampling": {
+    "temperature": 0.8,
+    "top_p": 0.95,
+    "max_tokens": 8192
+  },
+  "player_sampling": {
+    "temperature": 0.7,
+    "top_p": 0.95,
+    "max_tokens": 16384
+  },
+  "runtime": {
+    "empty_response_retries": 1,
+    "controlled_player": true,
+    "player_knowledge_rules": [],
+    "goal_criteria": {
+      "schema_version": 1,
+      "goals": {
+        "subgoal-01": {
+          "requires": [],
+          "criteria": [
+            {
+              "id": "role",
+              "description": "Mara confirms her specific role and responsibility for the archive collection. A title without responsibility is insufficient.",
+              "evidence_contains": "role"
+            },
+            {
+              "id": "supervision",
+              "description": "Alex learns who can authorize access beyond Mara's authority. A guess is insufficient.",
+              "evidence_contains": "supervision"
+            }
+          ]
+        },
+        "subgoal-02": {
+          "requires": [
+            "subgoal-01"
+          ],
+          "criteria": [
+            {
+              "id": "rules",
+              "description": "Mara explains at least one binding requirement for consulting public archive records.",
+              "evidence_contains": "rules"
+            },
+            {
+              "id": "request",
+              "description": "Alex makes a concrete request to consult records. Merely intending to ask is insufficient.",
+              "evidence_contains": "request"
+            }
+          ]
+        },
+        "subgoal-03": {
+          "requires": [
+            "subgoal-02"
+          ],
+          "criteria": [
+            {
+              "id": "approval",
+              "description": "Mara explicitly grants permission to inspect the visitor register. A suggestion or possibility does not count.",
+              "evidence_contains": "approval"
+            },
+            {
+              "id": "availability",
+              "description": "The visitor register is actually made available for Alex to inspect. Mentioning the register alone is insufficient.",
+              "evidence_contains": "availability"
+            }
+          ]
+        },
+        "subgoal-04": {
+          "requires": [
+            "subgoal-03"
+          ],
+          "criteria": [
+            {
+              "id": "entry",
+              "description": "Alex reads or receives the specific register entry from the day of the key's disappearance.",
+              "evidence_contains": "entry"
+            },
+            {
+              "id": "details",
+              "description": "The entry establishes at least a time and the visitor's identity or identifying designation.",
+              "evidence_contains": "details"
+            }
+          ]
+        },
+        "subgoal-05": {
+          "requires": [
+            "subgoal-04"
+          ],
+          "criteria": [
+            {
+              "id": "name",
+              "description": "A concrete name or uniquely verifiable identity is established for the visitor.",
+              "evidence_contains": "name"
+            },
+            {
+              "id": "corroboration",
+              "description": "The identity is corroborated by another clue or independent archive information. A guess is insufficient.",
+              "evidence_contains": "corroboration"
+            }
+          ]
+        },
+        "subgoal-06": {
+          "requires": [
+            "subgoal-04"
+          ],
+          "criteria": [
+            {
+              "id": "last-seen",
+              "description": "Alex establishes a specific time or interval when the key was last confirmed present.",
+              "evidence_contains": "last-seen"
+            },
+            {
+              "id": "sequence",
+              "description": "At least two relevant events are placed into an evidenced chronological sequence.",
+              "evidence_contains": "sequence"
+            }
+          ]
+        },
+        "subgoal-07": {
+          "requires": [
+            "subgoal-05",
+            "subgoal-06"
+          ],
+          "criteria": [
+            {
+              "id": "contradiction",
+              "description": "Two specifically identified facts from testimony or records materially contradict each other.",
+              "evidence_contains": "contradiction"
+            },
+            {
+              "id": "verification",
+              "description": "Alex checks the discrepancy against another available source or obtains concrete confirmation.",
+              "evidence_contains": "verification"
+            }
+          ]
+        },
+        "subgoal-08": {
+          "requires": [
+            "subgoal-07"
+          ],
+          "criteria": [
+            {
+              "id": "application",
+              "description": "Alex submits a specific access request to the competent authority. A general wish is insufficient.",
+              "evidence_contains": "application"
+            },
+            {
+              "id": "authorization",
+              "description": "The competent authority explicitly grants the required authorization. An invitation to apply is insufficient.",
+              "evidence_contains": "authorization"
+            }
+          ]
+        },
+        "subgoal-09": {
+          "requires": [
+            "subgoal-08"
+          ],
+          "criteria": [
+            {
+              "id": "access",
+              "description": "Alex actually gains access to the explicitly authorized vault records.",
+              "evidence_contains": "access"
+            },
+            {
+              "id": "document",
+              "description": "Alex reads a particular entry and learns its specific relevance to the key investigation.",
+              "evidence_contains": "document"
+            }
+          ]
+        },
+        "subgoal-10": {
+          "requires": [
+            "subgoal-07",
+            "subgoal-09"
+          ],
+          "criteria": [
+            {
+              "id": "clue",
+              "description": "Alex obtains a concrete clue pointing to an inspectable location. Vague speculation is insufficient.",
+              "evidence_contains": "clue"
+            },
+            {
+              "id": "reasoning",
+              "description": "Alex connects the clue to at least one previously established piece of evidence.",
+              "evidence_contains": "reasoning"
+            }
+          ]
+        },
+        "subgoal-11": {
+          "requires": [
+            "subgoal-10"
+          ],
+          "criteria": [
+            {
+              "id": "found",
+              "description": "The actual missing key is physically found at the examined location. An assertion or guess is insufficient.",
+              "evidence_contains": "found"
+            },
+            {
+              "id": "custody",
+              "description": "The key is demonstrably secured or transferred to an authorized custodian.",
+              "evidence_contains": "custody"
+            }
+          ]
+        },
+        "subgoal-12": {
+          "requires": [
+            "subgoal-11"
+          ],
+          "criteria": [
+            {
+              "id": "report",
+              "description": "Alex concretely summarizes the verified findings, recovery of the key and key supporting evidence.",
+              "evidence_contains": "report"
+            },
+            {
+              "id": "handover",
+              "description": "An authorized person receives the report or confirms a proper final handover.",
+              "evidence_contains": "handover"
+            }
+          ]
+        }
+      }
+    },
+    "semantic_evaluator": {
+      "mode": "llm",
+      "id": "archivist-quest-v1-deepseek-en",
+      "backend": {
+        "name": "nanogpt",
+        "base_url": "https://nano-gpt.com/api",
+        "model": "deepseek/deepseek-v4.1-flash:thinking",
+        "api_key_env": "NANOGPT_API_KEY",
+        "timeout": 300
+      },
+      "sampling": {
+        "temperature": 1.0,
+        "top_p": 0.95,
+        "max_tokens": 8192
+      },
+      "max_attempts": 2,
+      "quest_scheduler": "direct_supersession"
+    },
+    "player_control_mode": "narrative"
+  },
+  "player_backend": {
+    "name": "nanogpt",
+    "base_url": "https://nano-gpt.com/api",
+    "model": "deepseek/deepseek-v4.1-flash:thinking",
+    "mode": "chat",
+    "api_key_env": "NANOGPT_API_KEY",
+    "timeout": 300
+  }
+}

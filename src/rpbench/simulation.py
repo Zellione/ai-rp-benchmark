@@ -604,12 +604,12 @@ def run_simulation(
             "player": player,
             "backend": {
                 k: v for k, v in config["backend"].items()
-                if k not in {"api_key", "api_key_env"}
+                if k != "api_key"
             },
             "sampling": sampling,
             "player_backend": {
                 k: v for k, v in player_backend_config.items()
-                if k not in {"api_key", "api_key_env"}
+                if k != "api_key"
             },
             "player_sampling": player_sampling,
             "player_reasoning_effort": config.get(
@@ -694,6 +694,9 @@ def run_simulation(
                         and (run_dir / "criteria_progress.json").exists()
                         else None,
                         criteria_definition,
+                        config.get("runtime", {}).get(
+                            "player_control_mode", "action"
+                        ),
                     ) if controlled_player else player_messages,
                     player_sampling,
                     player_format,

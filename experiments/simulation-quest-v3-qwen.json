@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "model": {
+    "id": "davidau-qwen38-q6",
+    "backend_model": "davidau-twin-turbo-max-q6"
+  },
+  "turns": 20,
+  "scenarios": [
+    {
+      "id": "archive-investigation-v1",
+      "language": "de",
+      "scenario": "simulation/quest-archivist-v1/scenario-de.json",
+      "player": "simulation/quest-archivist-v1/player-de.json"
+    },
+    {
+      "id": "archive-investigation-v1",
+      "language": "en",
+      "scenario": "simulation/quest-archivist-v1/scenario-en.json",
+      "player": "simulation/quest-archivist-v1/player-en.json"
+    }
+  ],
+  "presets": [
+    {
+      "id": "baseline-external-player-v3",
+      "configs_by_language": {
+        "de": "simulation/quest-archivist-v1/qwen-external-player-v3-de.json",
+        "en": "simulation/quest-archivist-v1/qwen-external-player-v3-en.json"
+      }
+    }
+  ]
+}

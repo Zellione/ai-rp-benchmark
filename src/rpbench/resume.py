@@ -549,6 +549,9 @@ def _resume_simulation_locked(
                         and (root / "criteria_progress.json").exists()
                         else None,
                         criteria_definition,
+                        manifest.get("runtime", {}).get(
+                            "player_control_mode", "action"
+                        ),
                     ) if controlled_player else player_messages,
                     player_sampling,
                     player_format,
