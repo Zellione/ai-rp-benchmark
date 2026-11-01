@@ -1,0 +1,254 @@
+{
+  "schema_version": 1,
+  "goal_id": "subgoal-04",
+  "definition_version": "quest-archivist-v4",
+  "language": "en",
+  "cases": [
+    {
+      "id": "register-mentioned",
+      "description": "The register is mentioned but no entry is made accessible.",
+      "observations": [
+        {
+          "turn": 1,
+          "role": "player",
+          "text": "Does the visitor register exist?"
+        },
+        {
+          "turn": 1,
+          "role": "npc",
+          "text": "Yes, the visitor register is kept here."
+        }
+      ],
+      "expected": {
+        "entry": {
+          "status": "not_satisfied",
+          "first_satisfied_turn": null,
+          "evidence": [],
+          "reason": "No concrete entry is available."
+        },
+        "details": {
+          "status": "not_satisfied",
+          "first_satisfied_turn": null,
+          "evidence": [],
+          "reason": "No entry provides name and time."
+        }
+      }
+    },
+    {
+      "id": "register-opened",
+      "description": "Opening the book alone does not establish an entry.",
+      "observations": [
+        {
+          "turn": 1,
+          "role": "player",
+          "text": "May I inspect the visitor register?"
+        },
+        {
+          "turn": 1,
+          "role": "npc",
+          "text": "Mara opens the visitor register on the table."
+        },
+        {
+          "turn": 2,
+          "role": "player",
+          "text": "Which entry concerns October 12?"
+        },
+        {
+          "turn": 2,
+          "role": "npc",
+          "text": "Mara has not yet located a specific entry."
+        }
+      ],
+      "expected": {
+        "entry": {
+          "status": "not_satisfied",
+          "first_satisfied_turn": null,
+          "evidence": [],
+          "reason": "No specific entry identified."
+        },
+        "details": {
+          "status": "not_satisfied",
+          "first_satisfied_turn": null,
+          "evidence": [],
+          "reason": "No specific entry details supplied."
+        }
+      }
+    },
+    {
+      "id": "entry-without-identity",
+      "description": "A specific register entry has a time but no visitor identity.",
+      "observations": [
+        {
+          "turn": 1,
+          "role": "player",
+          "text": "Please read the October 12 visitor entry."
+        },
+        {
+          "turn": 1,
+          "role": "npc",
+          "text": "Mara reads the October 12 visitor-register entry aloud: arrival 16:45; visitor identification field is blank."
+        }
+      ],
+      "expected": {
+        "entry": {
+          "status": "satisfied",
+          "first_satisfied_turn": 1,
+          "evidence": [
+            {
+              "turn": 1,
+              "role": "npc",
+              "quote": "Mara reads the October 12 visitor-register entry aloud: arrival 16:45; visitor identification field is blank."
+            }
+          ],
+          "reason": "A concrete entry from the relevant date is read aloud."
+        },
+        "details": {
+          "status": "partial",
+          "first_satisfied_turn": null,
+          "evidence": [
+            {
+              "turn": 1,
+              "role": "npc",
+              "quote": "Mara reads the October 12 visitor-register entry aloud: arrival 16:45; visitor identification field is blank."
+            }
+          ],
+          "reason": "The entry provides a time but no visitor designation."
+        }
+      }
+    },
+    {
+      "id": "complete-register-entry",
+      "description": "The register independently establishes visitor and arrival time.",
+      "observations": [
+        {
+          "turn": 1,
+          "role": "player",
+          "text": "What does the key ledger say?"
+        },
+        {
+          "turn": 1,
+          "role": "npc",
+          "text": "The key ledger records a sign-out at 16:20."
+        },
+        {
+          "turn": 2,
+          "role": "player",
+          "text": "Read the October 12 visitor register entry."
+        },
+        {
+          "turn": 2,
+          "role": "npc",
+          "text": "Mara reads the October 12 visitor-register entry: Leon Falk arrived at 16:45."
+        }
+      ],
+      "expected": {
+        "entry": {
+          "status": "satisfied",
+          "first_satisfied_turn": 2,
+          "evidence": [
+            {
+              "turn": 2,
+              "role": "npc",
+              "quote": "Mara reads the October 12 visitor-register entry: Leon Falk arrived at 16:45."
+            }
+          ],
+          "reason": "A specific visitor-register entry is read aloud at turn 2."
+        },
+        "details": {
+          "status": "satisfied",
+          "first_satisfied_turn": 2,
+          "evidence": [
+            {
+              "turn": 2,
+              "role": "npc",
+              "quote": "Mara reads the October 12 visitor-register entry: Leon Falk arrived at 16:45."
+            }
+          ],
+          "reason": "The same entry names Leon Falk and records 16:45."
+        }
+      }
+    },
+    {
+      "id": "cross-document-contamination",
+      "description": "Two separate records cannot substitute for a visitor entry.",
+      "observations": [
+        {
+          "turn": 1,
+          "role": "player",
+          "text": "What do the other archive records show?"
+        },
+        {
+          "turn": 1,
+          "role": "npc",
+          "text": "The key ledger records a sign-out at 16:20."
+        },
+        {
+          "turn": 2,
+          "role": "npc",
+          "text": "The internal access list identifies Leon Falk at 16:15."
+        }
+      ],
+      "expected": {
+        "entry": {
+          "status": "not_satisfied",
+          "first_satisfied_turn": null,
+          "evidence": [],
+          "reason": "Neither source is a visitor-register entry."
+        },
+        "details": {
+          "status": "not_satisfied",
+          "first_satisfied_turn": null,
+          "evidence": [],
+          "reason": "Time and identity do not originate in a visitor entry."
+        }
+      }
+    },
+    {
+      "id": "no-key-link-required",
+      "description": "A complete visitor entry needs no link to the key sign-out.",
+      "observations": [
+        {
+          "turn": 1,
+          "role": "player",
+          "text": "Can you show the visitor entry for October 12?"
+        },
+        {
+          "turn": 1,
+          "role": "npc",
+          "text": "Mara reads the October 12 visitor-register entry aloud: Leon Falk, arrival 16:45."
+        },
+        {
+          "turn": 2,
+          "role": "npc",
+          "text": "There is no evidence in this register that Leon Falk signed out the missing key."
+        }
+      ],
+      "expected": {
+        "entry": {
+          "status": "satisfied",
+          "first_satisfied_turn": 1,
+          "evidence": [
+            {
+              "turn": 1,
+              "role": "npc",
+              "quote": "Mara reads the October 12 visitor-register entry aloud: Leon Falk, arrival 16:45."
+            }
+          ],
+          "reason": "The relevant visitor entry is explicitly read aloud."
+        },
+        "details": {
+          "status": "satisfied",
+          "first_satisfied_turn": 1,
+          "evidence": [
+            {
+              "turn": 1,
+              "role": "npc",
+              "quote": "Mara reads the October 12 visitor-register entry aloud: Leon Falk, arrival 16:45."
+            }
+          ],
+          "reason": "Name and arrival time are in the same visitor entry."
+        }
+      }
+    }
+  ]
+}
