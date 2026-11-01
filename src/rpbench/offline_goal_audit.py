@@ -300,6 +300,9 @@ def audit(
 
     identity_file = output / "identity.json"
     result_file = output / "verdict.json"
+    raw_file = output / "raw_response.json"
+
+    identity_hash = sha256_bytes(encode(identity))
 
     if identity_file.exists():
         if load(identity_file) != identity:
@@ -309,69 +312,111 @@ def audit(
 
     if result_file.exists():
         result = load(result_file)
+
         validate_verdict(
             result["verdict"], goal_id, definition, observations
         )
-        if result.get("identity_sha256") != sha256_bytes(
-            encode(identity)
-        ):
+
+        if result.get("identity_sha256") != identity_hash:
             raise ValueError("Existing audit verdict identity mismatch")
+
         print("Existing validated audit:", result_file)
         return result
 
-    if not os.getenv("NANOGPT_API_KEY"):
-        raise ValueError("Missing NANOGPT_API_KEY")
+    if raw_file.exists():
+        raw = load(raw_file)
 
-    backend = Backend(
-        name="nanogpt",
-        base_url=base_url,
-        model=model,
-        mode="chat",
-        api_key=os.getenv("NANOGPT_API_KEY"),
-        timeout=300,
-    )
+        if (
+            not isinstance(raw, dict)
+            or raw.get("schema_version") != SCHEMA_VERSION
+            or raw.get("identity_sha256") != identity_hash
+            or not isinstance(raw.get("content"), str)
+            or not isinstance(raw.get("finish_reason"), str)
+        ):
+            raise ValueError("Invalid raw audit response identity")
 
-    url, payload = backend.prepare(
-        [
-            {"role": "system", "content": INSTRUCTIONS},
+        content = raw["content"]
+        finish_reason = raw["finish_reason"]
+        usage = raw.get("usage")
+
+        print("Reusing raw audit response:", raw_file)
+
+    else:
+        api_key = os.getenv("NANOGPT_API_KEY")
+
+        if not api_key:
+            raise ValueError("Missing NANOGPT_API_KEY")
+
+        backend = Backend(
+            name="nanogpt",
+            base_url=base_url,
+            model=model,
+            mode="chat",
+            api_key=api_key,
+            timeout=300,
+        )
+
+        url, payload = backend.prepare(
+            [
+                {"role": "system", "content": INSTRUCTIONS},
+                {
+                    "role": "user",
+                    "content": json.dumps(
+                        context, ensure_ascii=False
+                    ),
+                },
+            ],
             {
-                "role": "user",
-                "content": json.dumps(
-                    context, ensure_ascii=False
-                ),
+                "temperature": 0,
+                "max_tokens": max_tokens,
             },
-        ],
-        {
-            "temperature": 0,
-            "max_tokens": max_tokens,
-        },
-        {},
-    )
+            {},
+        )
 
-    # Write identity only after response validation succeeds.
-    # A failed API call leaves no accepted verdict.
-    content, response = backend.generate(url, payload)
-    choice = (response.get("choices") or [{}])[0]
+        content, response = backend.generate(url, payload)
 
-    if choice.get("finish_reason") == "length":
+        if not isinstance(content, str):
+            raise ValueError("Invalid judge response content")
+
+        choice = (response.get("choices") or [{}])[0]
+        finish_reason = choice.get("finish_reason")
+        usage = response.get("usage")
+
+        raw = {
+            "schema_version": SCHEMA_VERSION,
+            "identity_sha256": identity_hash,
+            "content": content,
+            "finish_reason": finish_reason,
+            "usage": usage,
+        }
+
+        # Persist the raw answer before parsing or validation.
+        output.mkdir(parents=True, exist_ok=True)
+
+        if not identity_file.exists():
+            dump(identity_file, identity)
+
+        dump(raw_file, raw)
+
+        print("Raw audit response saved:", raw_file)
+
+    if finish_reason == "length":
         raise ValueError("Offline judge exhausted its output budget")
 
     proposal = parse_evaluator_json(content)
+
     verdict = validate_verdict(
         proposal, goal_id, definition, observations
     )
 
     result = {
         "schema_version": SCHEMA_VERSION,
-        "identity_sha256": sha256_bytes(encode(identity)),
+        "identity_sha256": identity_hash,
         "verdict": verdict,
-        "usage": response.get("usage"),
-        "finish_reason": choice.get("finish_reason"),
+        "usage": usage,
+        "finish_reason": finish_reason,
     }
 
-    output.mkdir(parents=True, exist_ok=True)
-    if not identity_file.exists():
-        dump(identity_file, identity)
     dump(result_file, result)
 
     print("Audit saved:", result_file)

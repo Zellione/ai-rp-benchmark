@@ -244,3 +244,75 @@ def test_audit_identity_rejects_changed_source(
 
     with pytest.raises(ValueError, match="identity mismatch"):
         audit(run, output, "subgoal-01", "fixture-model")
+
+
+
+def test_invalid_raw_response_is_reusable(
+    tmp_path, monkeypatch
+):
+    run, _, _, verdict = fixture(tmp_path)
+    invalid = deepcopy(verdict)
+    invalid["criteria"][1]["first_satisfied_turn"] = 1
+
+    calls = []
+
+    def fake_generate(self, url, payload):
+        calls.append(url)
+        return json.dumps(invalid), {
+            "choices": [{"finish_reason": "stop"}],
+        }
+
+    monkeypatch.setenv("NANOGPT_API_KEY", "fixture-key")
+    monkeypatch.setattr(Backend, "generate", fake_generate)
+
+    output = tmp_path / "invalid-audit"
+
+    options = dict(
+        run=run,
+        output=output,
+        goal_id="subgoal-01",
+        model="fixture-model",
+    )
+
+    with pytest.raises(ValueError, match="precedes"):
+        audit(**options)
+
+    assert (output / "identity.json").exists()
+    assert (output / "raw_response.json").exists()
+    assert not (output / "verdict.json").exists()
+
+    monkeypatch.delenv("NANOGPT_API_KEY")
+
+    with pytest.raises(ValueError, match="precedes"):
+        audit(**options)
+
+    assert len(calls) == 1
+
+
+def test_raw_response_rejects_changed_source(
+    tmp_path, monkeypatch
+):
+    run, _, _, verdict = fixture(tmp_path)
+    invalid = deepcopy(verdict)
+    invalid["criteria"][1]["first_satisfied_turn"] = 1
+
+    def fake_generate(self, url, payload):
+        return json.dumps(invalid), {
+            "choices": [{"finish_reason": "stop"}],
+        }
+
+    monkeypatch.setenv("NANOGPT_API_KEY", "fixture-key")
+    monkeypatch.setattr(Backend, "generate", fake_generate)
+
+    output = tmp_path / "invalid-audit"
+
+    with pytest.raises(ValueError, match="precedes"):
+        audit(run, output, "subgoal-01", "fixture-model")
+
+    with (run / "observations.jsonl").open(
+        "a", encoding="utf-8"
+    ) as file:
+        file.write("\n")
+
+    with pytest.raises(ValueError, match="identity mismatch"):
+        audit(run, output, "subgoal-01", "fixture-model")
