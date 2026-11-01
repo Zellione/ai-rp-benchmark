@@ -1,0 +1,260 @@
+{
+  "backend": {
+    "name": "llamacpp",
+    "base_url": "http://127.0.0.1:8080",
+    "model": "davidau-twin-turbo-max-q6",
+    "mode": "chat",
+    "timeout": 300
+  },
+  "sampling": {
+    "temperature": 0.8,
+    "top_p": 0.95,
+    "max_tokens": 8192
+  },
+  "player_sampling": {
+    "temperature": 0.7,
+    "top_p": 0.95,
+    "max_tokens": 16384
+  },
+  "runtime": {
+    "empty_response_retries": 1,
+    "controlled_player": true,
+    "player_knowledge_rules": [],
+    "goal_criteria": {
+      "schema_version": 1,
+      "goals": {
+        "subgoal-01": {
+          "requires": [],
+          "criteria": [
+            {
+              "id": "role",
+              "description": "Mara bestätigt ihre konkrete Rolle für die Archivsammlung und nennt mindestens eine tatsächliche Zuständigkeit. Eine bloße Berufsbezeichnung oder eine unbelegte Vermutung von Alex genügt nicht.",
+              "evidence_contains": "role"
+            },
+            {
+              "id": "supervision",
+              "description": "Alex erfährt aus einer verlässlichen Aussage, welche Person oder Stelle Zugänge genehmigen kann, die Maras Befugnisse überschreiten. Der Name oder die eindeutig bestimmbare Funktion muss genannt werden; eine Vermutung genügt nicht.",
+              "evidence_contains": "supervision"
+            }
+          ]
+        },
+        "subgoal-02": {
+          "requires": [
+            "subgoal-01"
+          ],
+          "criteria": [
+            {
+              "id": "rules",
+              "description": "Mara erklärt mindestens eine konkrete, verbindliche Bedingung für die Einsicht in öffentliche Archivunterlagen, etwa Registrierung, Aufsicht oder Nutzungsbeschränkungen. Allgemeine Höflichkeit oder eine vage Empfehlung genügt nicht.",
+              "evidence_contains": "rules"
+            },
+            {
+              "id": "request",
+              "description": "Alex äußert gegenüber einer zuständigen Person eine konkrete Bitte um Einsicht in identifizierbare Archivunterlagen. Ein innerer Plan, eine allgemeine Frage nach Archiven oder bloße Absicht genügt nicht.",
+              "evidence_contains": "request"
+            }
+          ]
+        },
+        "subgoal-03": {
+          "requires": [
+            "subgoal-02"
+          ],
+          "criteria": [
+            {
+              "id": "approval",
+              "description": "Mara erteilt Alex ausdrücklich die Erlaubnis, das Besucherregister einzusehen. Ein Hinweis auf dessen Existenz, ein Angebot unter Vorbehalt oder eine bloße Möglichkeit ist keine Genehmigung.",
+              "evidence_contains": "approval"
+            },
+            {
+              "id": "availability",
+              "description": "Das Besucherregister wird Alex tatsächlich zugänglich gemacht, etwa indem Mara das Buch vorlegt, öffnet oder den relevanten Inhalt vorliest. Eine bloße Erwähnung oder künftige Zusage genügt nicht.",
+              "evidence_contains": "availability"
+            }
+          ]
+        },
+        "subgoal-04": {
+          "requires": [
+            "subgoal-03"
+          ],
+          "criteria": [
+            {
+              "id": "entry",
+              "description": "Alex liest oder erhält den konkreten Besucherregistereintrag eines Besuchs am Tag des Schlüsselverschwindens. Das bloße Bereitstellen des Buches ohne erkennbaren konkreten Eintrag genügt nicht; ein Schlüsselaustrag aus einem anderen Protokoll ist kein Besucherregistereintrag.",
+              "evidence_contains": "entry"
+            },
+            {
+              "id": "details",
+              "description": "Derselbe Besucherregistereintrag aus dem Kriterium entry belegt sowohl eine konkrete Besuchszeit als auch einen Namen oder eine identifizierende Besucherkennung. Angaben aus Schlüsselprotokoll, Empfangsnotiz oder interner Zugangsliste dürfen nicht kombiniert werden, um fehlende Angaben des Besucherregistereintrags zu ersetzen. Eine Verbindung dieses Besuchers zum Schlüsselaustrag ist hier noch nicht erforderlich.",
+              "evidence_contains": "details"
+            }
+          ]
+        },
+        "subgoal-05": {
+          "requires": [
+            "subgoal-04"
+          ],
+          "criteria": [
+            {
+              "id": "name",
+              "description": "Für die im Besucherregistereintrag aus subgoal-04 bezeichnete Person wird ein konkreter Name aus dem Register selbst oder dessen zugehörigem Identitätsindex festgestellt. Eine eindeutige Kennung ohne aufgelösten Personennamen zählt als teilweise erfüllt. Eine dokumentierte Namenszuordnung zählt als erfüllt, auch wenn eine spätere unabhängige Quelle diese Zuordnung bestreitet; der Widerspruch wird bei corroboration berücksichtigt. Eine unbelegte Behauptung von Alex genügt nicht. Eine unabhängige Verifikation ist für dieses Kriterium nicht erforderlich.",
+              "evidence_contains": "name"
+            },
+            {
+              "id": "corroboration",
+              "description": "Mindestens eine vom ursprünglichen Besucherregister und dessen zugehörigem Identitätsindex unabhängige Quelle bestätigt die dokumentierte Namenszuordnung für dieselbe Person oder denselben Besuch. Die Wiederholung derselben Quelle genügt nicht. Eine Quelle, die stattdessen eine andere Identität nennt, ist ein Widerspruch und keine Bestätigung. Belege über andere Besucher zählen nicht. Eine konkrete unabhängige Teilbestätigung ohne vollständige Identitätszuordnung kann als teilweise erfüllt gelten.",
+              "evidence_contains": "corroboration"
+            }
+          ]
+        },
+        "subgoal-06": {
+          "requires": [
+            "subgoal-04"
+          ],
+          "criteria": [
+            {
+              "id": "last-seen",
+              "description": "Alex ermittelt anhand einer konkret benannten Quelle einen Zeitpunkt oder eingegrenzten Zeitraum, zu dem der gesuchte Schlüssel nachweislich vorhanden oder in Verwahrung war. Die Anwesenheit eines Besuchers allein belegt keinen Schlüsselbesitz.",
+              "evidence_contains": "last-seen"
+            },
+            {
+              "id": "sequence",
+              "description": "Mindestens zwei konkret belegte, für den Schlüsselverlust relevante Ereignisse werden in zeitlich nachvollziehbare Reihenfolge gebracht; die Zuordnung ihrer jeweiligen Quellen bleibt erkennbar. Nicht belegte Zwischenschritte dürfen nicht als Tatsachen gelten.",
+              "evidence_contains": "sequence"
+            }
+          ]
+        },
+        "subgoal-07": {
+          "requires": [
+            "subgoal-05",
+            "subgoal-06"
+          ],
+          "criteria": [
+            {
+              "id": "contradiction",
+              "description": "Zwei identifizierte Aussagen oder Aufzeichnungen widersprechen sich materiell über denselben Sachverhalt oder dasselbe Ereignis. Bloß unterschiedliche Zeiten für verschiedene Ereignisse sind kein Widerspruch; beide Quellen und ihre Aussagen müssen benannt werden.",
+              "evidence_contains": "contradiction"
+            },
+            {
+              "id": "verification",
+              "description": "Alex überprüft genau diesen Widerspruch durch eine zusätzliche, unterscheidbare Quelle oder erhält eine konkrete Bestätigung, die eine der widersprechenden Angaben prüft. Bloßes Wiederholen oder Spekulieren genügt nicht.",
+              "evidence_contains": "verification"
+            }
+          ]
+        },
+        "subgoal-08": {
+          "requires": [
+            "subgoal-07"
+          ],
+          "criteria": [
+            {
+              "id": "application",
+              "description": "Alex richtet eine konkrete Anfrage nach Einsicht in die eingeschränkten Tresorunterlagen an die hierfür zuständige Person oder Stelle. Eine allgemeine Neugier oder Bitte an eine nicht zuständige Person genügt nicht.",
+              "evidence_contains": "application"
+            },
+            {
+              "id": "authorization",
+              "description": "Die zuständige Person oder Stelle bewilligt Alex ausdrücklich den angefragten Umfang der Einsicht in die eingeschränkten Tresorunterlagen. Ein eingereichter Antrag, eine Prüfung oder eine bloße Aussicht auf Genehmigung genügt nicht.",
+              "evidence_contains": "authorization"
+            }
+          ]
+        },
+        "subgoal-09": {
+          "requires": [
+            "subgoal-08"
+          ],
+          "criteria": [
+            {
+              "id": "access",
+              "description": "Alex erhält nach der Genehmigung tatsächlichen Zugriff auf die im genehmigten Umfang liegenden Tresorunterlagen, nicht nur auf eine Beschreibung oder ein Zugangsversprechen.",
+              "evidence_contains": "access"
+            },
+            {
+              "id": "document",
+              "description": "Alex liest oder erhält den Inhalt eines konkret identifizierbaren Eintrags dieser Tresorunterlagen und erfährt eine bestimmte für die Schlüsselsuche relevante Information daraus. Ein bloßer Verweis auf das Dokument genügt nicht.",
+              "evidence_contains": "document"
+            }
+          ]
+        },
+        "subgoal-10": {
+          "requires": [
+            "subgoal-07",
+            "subgoal-09"
+          ],
+          "criteria": [
+            {
+              "id": "clue",
+              "description": "Alex erhält einen konkret belegten Hinweis auf einen räumlich abgrenzbaren und prinzipiell überprüfbaren möglichen Aufbewahrungsort des Schlüssels. Eine unbestimmte Gegend oder reine Intuition genügt nicht.",
+              "evidence_contains": "clue"
+            },
+            {
+              "id": "reasoning",
+              "description": "Alex stellt ausdrücklich eine nachvollziehbare Verbindung zwischen diesem Ortshinweis und mindestens einem zuvor belegten Ermittlungsbefund her. Eine unbegründete Schlussfolgerung genügt nicht.",
+              "evidence_contains": "reasoning"
+            }
+          ]
+        },
+        "subgoal-11": {
+          "requires": [
+            "subgoal-10"
+          ],
+          "criteria": [
+            {
+              "id": "found",
+              "description": "Der tatsächlich gesuchte Schlüssel wird am untersuchten Ort als konkreter Gegenstand aufgefunden und anhand erkennbarer Merkmale oder belastbarer Umstände als dieser Schlüssel identifiziert. Ein bloßer Verdacht oder die Behauptung eines Fundes genügt nicht.",
+              "evidence_contains": "found"
+            },
+            {
+              "id": "custody",
+              "description": "Der gefundene Schlüssel wird nachweislich gesichert oder an eine berechtigte Person übergeben. Die bloße Absicht, ihn später zu sichern, genügt nicht.",
+              "evidence_contains": "custody"
+            }
+          ]
+        },
+        "subgoal-12": {
+          "requires": [
+            "subgoal-11"
+          ],
+          "criteria": [
+            {
+              "id": "report",
+              "description": "Alex übermittelt einen konkreten Abschlussbericht, der den bestätigten Schlüsselfund, wesentliche überprüfte Erkenntnisse und die entscheidenden Belege nachvollziehbar zusammenfasst. Eine bloße Erfolgsmeldung genügt nicht.",
+              "evidence_contains": "report"
+            },
+            {
+              "id": "handover",
+              "description": "Eine für den Abschluss zuständige Person erhält den Bericht oder bestätigt ausdrücklich die ordnungsgemäße abschließende Übergabe. Eine nur geplante oder behauptete Übergabe ohne erkennbaren Empfänger genügt nicht.",
+              "evidence_contains": "handover"
+            }
+          ]
+        }
+      }
+    },
+    "semantic_evaluator": {
+      "mode": "llm",
+      "id": "archivist-quest-v1-deepseek-de",
+      "backend": {
+        "name": "nanogpt",
+        "base_url": "https://nano-gpt.com/api",
+        "model": "deepseek/deepseek-v4.1-flash:thinking",
+        "api_key_env": "NANOGPT_API_KEY",
+        "timeout": 300
+      },
+      "sampling": {
+        "temperature": 1.0,
+        "top_p": 0.95,
+        "max_tokens": 8192
+      },
+      "max_attempts": 2,
+      "quest_scheduler": "direct_supersession"
+    },
+    "player_control_mode": "narrative"
+  },
+  "player_backend": {
+    "name": "nanogpt",
+    "base_url": "https://nano-gpt.com/api/subscription",
+    "model": "z-ai/glm-5.3-flash-uncensored",
+    "mode": "chat",
+    "api_key_env": "NANOGPT_API_KEY",
+    "timeout": 300
+  }
+}

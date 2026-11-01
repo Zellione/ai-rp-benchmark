@@ -488,3 +488,95 @@ def test_evidence_normalization_rejects_conflicting_role(tmp_path):
 
     assert changes == []
     assert cleaned == malformed
+
+
+
+def test_missing_completion_normalized_for_unsatisfied(tmp_path):
+    from rpbench.offline_goal_audit import normalize_evidence_refs
+
+    _, definition, observations, verdict = fixture(tmp_path)
+    malformed = deepcopy(verdict)
+
+    item = malformed["criteria"][0]
+    item["status"] = "not_satisfied"
+    item["first_satisfied_turn"] = None
+    item["evidence"] = []
+    item.pop("first_satisfied_turn")
+
+    original = deepcopy(malformed)
+
+    cleaned, changes = normalize_evidence_refs(
+        malformed, observations
+    )
+
+    assert malformed == original
+    assert cleaned["criteria"][0]["first_satisfied_turn"] is None
+    assert changes == [{
+        "criterion_id": item["criterion_id"],
+        "normalization": "missing_completion_to_null",
+    }]
+
+    validate_verdict(
+        cleaned, "subgoal-01", definition, observations
+    )
+
+
+def test_missing_completion_normalized_for_partial(tmp_path):
+    from rpbench.offline_goal_audit import normalize_evidence_refs
+
+    _, _, observations, verdict = fixture(tmp_path)
+    malformed = deepcopy(verdict)
+
+    item = malformed["criteria"][0]
+    item["status"] = "partial"
+    item.pop("first_satisfied_turn")
+
+    cleaned, changes = normalize_evidence_refs(
+        malformed, observations
+    )
+
+    assert cleaned["criteria"][0]["status"] == "partial"
+    assert cleaned["criteria"][0]["first_satisfied_turn"] is None
+    assert len(changes) == 1
+    assert changes[0]["normalization"] == (
+        "missing_completion_to_null"
+    )
+
+
+def test_missing_completion_not_repaired_for_satisfied(tmp_path):
+    from rpbench.offline_goal_audit import normalize_evidence_refs
+
+    _, definition, observations, verdict = fixture(tmp_path)
+    malformed = deepcopy(verdict)
+    malformed["criteria"][0].pop("first_satisfied_turn")
+
+    cleaned, changes = normalize_evidence_refs(
+        malformed, observations
+    )
+
+    assert cleaned == malformed
+    assert changes == []
+
+    with pytest.raises(ValueError, match="Invalid criterion"):
+        validate_verdict(
+            cleaned, "subgoal-01", definition, observations
+        )
+
+
+def test_existing_null_completion_is_unchanged(tmp_path):
+    from rpbench.offline_goal_audit import normalize_evidence_refs
+
+    _, _, observations, verdict = fixture(tmp_path)
+    malformed = deepcopy(verdict)
+
+    item = malformed["criteria"][0]
+    item["status"] = "not_satisfied"
+    item["first_satisfied_turn"] = None
+    item["evidence"] = []
+
+    cleaned, changes = normalize_evidence_refs(
+        malformed, observations
+    )
+
+    assert cleaned == malformed
+    assert changes == []

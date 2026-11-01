@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "model": {
+    "id": "mistral-q8",
+    "backend_model": "mistral-small-3.2-q8"
+  },
+  "turns": 20,
+  "scenarios": [
+    {
+      "id": "archive-investigation-v1",
+      "language": "de",
+      "scenario": "simulation/quest-archivist-v1/scenario-de.json",
+      "player": "simulation/quest-archivist-v1/player-de.json"
+    },
+    {
+      "id": "archive-investigation-v1",
+      "language": "en",
+      "scenario": "simulation/quest-archivist-v1/scenario-en.json",
+      "player": "simulation/quest-archivist-v1/player-en.json"
+    }
+  ],
+  "presets": [
+    {
+      "id": "baseline-glm-flash-narrative-player-v5",
+      "configs_by_language": {
+        "de": "simulation/quest-archivist-v1/mistral-glm-flash-player-v5-de.json",
+        "en": "simulation/quest-archivist-v1/mistral-glm-flash-player-v5-en.json"
+      }
+    }
+  ]
+}

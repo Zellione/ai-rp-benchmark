@@ -346,6 +346,21 @@ def normalize_evidence_refs(proposal, observations):
         if not isinstance(criterion, dict):
             continue
 
+        # A non-satisfied criterion has no completion turn.
+        # Restore an omitted null without changing the verdict.
+        if (
+            "first_satisfied_turn" not in criterion
+            and criterion.get("status") in {
+                "partial", "not_satisfied"
+            }
+        ):
+            criterion["first_satisfied_turn"] = None
+
+            changes.append({
+                "criterion_id": criterion.get("criterion_id"),
+                "normalization": "missing_completion_to_null",
+            })
+
         evidence = criterion.get("evidence")
         if not isinstance(evidence, list):
             continue
