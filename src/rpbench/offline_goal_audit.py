@@ -1,3 +1,4 @@
+from copy import deepcopy
 """Independent, evidence-verified, full-transcript goal audit v2.
 
 Does not edit source runs or consume live judge assessments.
@@ -206,7 +207,52 @@ def validate_verdict(verdict, goal_id, definition, observations):
     }
 
 
-def prepare(run, goal_id, model, base_url, max_tokens):
+
+def load_external_goal_definition(path, original, state):
+    """Load alternate criteria without changing quest structure."""
+    configuration = load(Path(path).resolve())
+
+    try:
+        candidate = configuration["runtime"]["goal_criteria"]
+    except (KeyError, TypeError) as exc:
+        raise ValueError(
+            "External configuration lacks runtime.goal_criteria"
+        ) from exc
+
+    validate_goal_criteria(candidate, state)
+
+    # A retrospective audit may clarify descriptions, but it must
+    # not silently redefine the quest structure.
+    baseline = deepcopy(original)
+    revised = deepcopy(candidate)
+
+    if set(baseline["goals"]) != set(revised["goals"]):
+        raise ValueError("External goal set mismatch")
+
+    for goal_id in baseline["goals"]:
+        before = baseline["goals"][goal_id]
+        after = revised["goals"][goal_id]
+
+        before_criteria = before["criteria"]
+        after_criteria = after["criteria"]
+
+        if [c["id"] for c in before_criteria] != [
+            c["id"] for c in after_criteria
+        ]:
+            raise ValueError("External criterion ID mismatch")
+
+        for old, new in zip(before_criteria, after_criteria):
+            old["description"] = new["description"]
+
+    if baseline != revised:
+        raise ValueError(
+            "External definition changes quest structure"
+        )
+
+    return candidate
+
+
+def prepare(run, goal_id, model, base_url, max_tokens, goal_definition=None):
     run = Path(run).resolve()
     if not run.is_dir():
         raise ValueError("Missing source run")
@@ -217,9 +263,14 @@ def prepare(run, goal_id, model, base_url, max_tokens):
 
     ground_truth = load(run / "ground_truth.json")
     definition = manifest["runtime"]["goal_criteria"]
-    validate_goal_criteria(
-        definition, initial_state(ground_truth)
-    )
+    state = initial_state(ground_truth)
+
+    validate_goal_criteria(definition, state)
+
+    if goal_definition is not None:
+        definition = load_external_goal_definition(
+            goal_definition, definition, state
+        )
 
     if goal_id not in definition["goals"]:
         raise ValueError(f"Unknown goal: {goal_id}")
@@ -274,6 +325,7 @@ def audit(
     run, output, goal_id, model,
     base_url="https://nano-gpt.com/api/subscription",
     max_tokens=16384, dry_run=False,
+    goal_definition=None,
 ):
     source = Path(run).resolve()
     output = Path(output).resolve()
@@ -285,7 +337,8 @@ def audit(
         raise ValueError("Invalid audit backend configuration")
 
     identity, definition, observations, context = prepare(
-        source, goal_id, model, base_url, max_tokens
+        source, goal_id, model, base_url, max_tokens,
+        goal_definition=goal_definition,
     )
 
     if dry_run:
@@ -295,6 +348,7 @@ def audit(
             item["turn"] for item in observations
         ))
         print("Criteria:", len(context["criteria"]))
+        print("Definition SHA256:", identity["definition_sha256"])
         print("Endpoint:", base_url.rstrip("/") + "/v1/chat/completions")
         return None
 
@@ -435,6 +489,10 @@ def main():
     )
     parser.add_argument("--max-tokens", type=int, default=16384)
     parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument(
+        "--goal-definition",
+        help="External quest configuration containing runtime.goal_criteria",
+    )
     args = parser.parse_args()
 
     audit(
@@ -442,6 +500,7 @@ def main():
         base_url=args.base_url,
         max_tokens=args.max_tokens,
         dry_run=args.dry_run,
+        goal_definition=args.goal_definition,
     )
 
 

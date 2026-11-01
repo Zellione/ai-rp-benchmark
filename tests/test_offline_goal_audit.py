@@ -316,3 +316,112 @@ def test_raw_response_rejects_changed_source(
 
     with pytest.raises(ValueError, match="identity mismatch"):
         audit(run, output, "subgoal-01", "fixture-model")
+
+
+
+def external_configuration(tmp_path, definition):
+    path = tmp_path / "quest-v4.json"
+    dump(path, {
+        "runtime": {
+            "goal_criteria": definition,
+        },
+    })
+    return path
+
+
+def test_external_goal_definition_changes_identity(tmp_path):
+    run, definition, _, _ = fixture(tmp_path)
+
+    revised = deepcopy(definition)
+    revised["goals"]["subgoal-01"]["criteria"][1][
+        "description"
+    ] = "Precisely identify visitor and timestamp."
+
+    config = external_configuration(tmp_path, revised)
+
+    original, original_definition, _, old_context = prepare(
+        run, "subgoal-01", "fixture-model",
+        "https://nano-gpt.com/api/subscription", 16384,
+    )
+
+    changed, changed_definition, _, new_context = prepare(
+        run, "subgoal-01", "fixture-model",
+        "https://nano-gpt.com/api/subscription", 16384,
+        goal_definition=config,
+    )
+
+    assert original["source_files_sha256"] == (
+        changed["source_files_sha256"]
+    )
+    assert original["definition_sha256"] != (
+        changed["definition_sha256"]
+    )
+    assert old_context["criteria"] != new_context["criteria"]
+    assert changed_definition == revised
+    assert original_definition == definition
+
+
+def test_external_goal_definition_rejects_structure_change(tmp_path):
+    run, definition, _, _ = fixture(tmp_path)
+    revised = deepcopy(definition)
+    revised["goals"]["subgoal-01"]["criteria"][1][
+        "id"
+    ] = "different-criterion"
+
+    config = external_configuration(tmp_path, revised)
+
+    with pytest.raises(ValueError, match="criterion ID mismatch"):
+        prepare(
+            run, "subgoal-01", "fixture-model",
+            "https://nano-gpt.com/api/subscription", 16384,
+            goal_definition=config,
+        )
+
+
+def test_external_goal_definition_rejects_missing_file(tmp_path):
+    run, _, _, _ = fixture(tmp_path)
+
+    with pytest.raises(FileNotFoundError):
+        prepare(
+            run, "subgoal-01", "fixture-model",
+            "https://nano-gpt.com/api/subscription", 16384,
+            goal_definition=tmp_path / "missing.json",
+        )
+
+
+def test_external_definition_prevents_verdict_reuse(
+    tmp_path, monkeypatch
+):
+    run, definition, _, verdict = fixture(tmp_path)
+
+    revised = deepcopy(definition)
+    revised["goals"]["subgoal-01"]["criteria"][0][
+        "description"
+    ] = "Revised visitor register requirement."
+
+    config = external_configuration(tmp_path, revised)
+
+    calls = []
+
+    def fake_generate(self, url, payload):
+        calls.append(url)
+        return json.dumps(verdict), {
+            "choices": [{"finish_reason": "stop"}],
+        }
+
+    monkeypatch.setenv("NANOGPT_API_KEY", "fixture-key")
+    monkeypatch.setattr(Backend, "generate", fake_generate)
+
+    output = tmp_path / "audit"
+
+    audit(
+        run, output, "subgoal-01", "fixture-model"
+    )
+
+    with pytest.raises(ValueError, match="identity mismatch"):
+        audit(
+            run, output, "subgoal-01", "fixture-model",
+            goal_definition=config,
+        )
+
+    assert len(calls) == 1
