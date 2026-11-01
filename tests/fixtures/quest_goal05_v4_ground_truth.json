@@ -1,0 +1,351 @@
+{
+  "schema_version": 1,
+  "goal_id": "subgoal-05",
+  "definition_version": "quest-archivist-v4",
+  "language": "en",
+  "cases": [
+    {
+      "id": "anonymous-designation",
+      "description": "A visitor code exists, but no person has been identified.",
+      "observations": [
+        {
+          "turn": 1,
+          "role": "player",
+          "text": "What does the visitor register say?"
+        },
+        {
+          "turn": 1,
+          "role": "npc",
+          "text": "The October 12 visitor-register entry identifies the visitor only as LF-27."
+        },
+        {
+          "turn": 2,
+          "role": "player",
+          "text": "Can you identify LF-27?"
+        },
+        {
+          "turn": 2,
+          "role": "npc",
+          "text": "Mara says the designation has not been linked to any identifiable person."
+        }
+      ],
+      "expected": {
+        "name": {
+          "status": "partial",
+          "first_satisfied_turn": null,
+          "evidence": [
+            {
+              "turn": 1,
+              "role": "npc",
+              "quote": "The October 12 visitor-register entry identifies the visitor only as LF-27."
+            }
+          ],
+          "reason": "LF-27 is known, but no identifiable person has been established."
+        },
+        "corroboration": {
+          "status": "not_satisfied",
+          "first_satisfied_turn": null,
+          "evidence": [],
+          "reason": "No independent source corroborates an identity."
+        }
+      }
+    },
+    {
+      "id": "repeated-register",
+      "description": "Repeating one source cannot independently corroborate it.",
+      "observations": [
+        {
+          "turn": 1,
+          "role": "player",
+          "text": "Who is named in the October 12 visitor register?"
+        },
+        {
+          "turn": 1,
+          "role": "npc",
+          "text": "Mara reads the visitor-register entry: Leon Falk, arrival 16:45."
+        },
+        {
+          "turn": 2,
+          "role": "player",
+          "text": "Can you confirm that name?"
+        },
+        {
+          "turn": 2,
+          "role": "npc",
+          "text": "Mara reads the same visitor-register entry again: Leon Falk, arrival 16:45. She has not checked another source."
+        }
+      ],
+      "expected": {
+        "name": {
+          "status": "satisfied",
+          "first_satisfied_turn": 1,
+          "evidence": [
+            {
+              "turn": 1,
+              "role": "npc",
+              "quote": "Mara reads the visitor-register entry: Leon Falk, arrival 16:45."
+            }
+          ],
+          "reason": "The register names Leon Falk at turn 1."
+        },
+        "corroboration": {
+          "status": "not_satisfied",
+          "first_satisfied_turn": null,
+          "evidence": [],
+          "reason": "Both statements originate from the same register entry."
+        }
+      }
+    },
+    {
+      "id": "independent-reception-record",
+      "description": "A distinct identity record corroborates the named visitor.",
+      "observations": [
+        {
+          "turn": 1,
+          "role": "player",
+          "text": "Who appears in the visitor register?"
+        },
+        {
+          "turn": 1,
+          "role": "npc",
+          "text": "The October 12 visitor-register entry names Leon Falk at 16:45."
+        },
+        {
+          "turn": 2,
+          "role": "player",
+          "text": "Is there independent confirmation of his identity?"
+        },
+        {
+          "turn": 2,
+          "role": "npc",
+          "text": "Mara checks a separately maintained reception identity record. It confirms that Leon Falk presented identification when he arrived that afternoon."
+        }
+      ],
+      "expected": {
+        "name": {
+          "status": "satisfied",
+          "first_satisfied_turn": 1,
+          "evidence": [
+            {
+              "turn": 1,
+              "role": "npc",
+              "quote": "The October 12 visitor-register entry names Leon Falk at 16:45."
+            }
+          ],
+          "reason": "Leon Falk is identified by name in the register."
+        },
+        "corroboration": {
+          "status": "satisfied",
+          "first_satisfied_turn": 2,
+          "evidence": [
+            {
+              "turn": 1,
+              "role": "npc",
+              "quote": "The October 12 visitor-register entry names Leon Falk at 16:45."
+            },
+            {
+              "turn": 2,
+              "role": "npc",
+              "quote": "Mara checks a separately maintained reception identity record. It confirms that Leon Falk presented identification when he arrived that afternoon."
+            }
+          ],
+          "reason": "An independently maintained reception record confirms that same identity."
+        }
+      }
+    },
+    {
+      "id": "contradictory-identity-record",
+      "description": "An independent record disputes the register identity.",
+      "observations": [
+        {
+          "turn": 1,
+          "role": "player",
+          "text": "Who was registered on October 12?"
+        },
+        {
+          "turn": 1,
+          "role": "npc",
+          "text": "The visitor-register entry names Leon Falk at 16:45."
+        },
+        {
+          "turn": 2,
+          "role": "player",
+          "text": "Does the separate identity-check record confirm him?"
+        },
+        {
+          "turn": 2,
+          "role": "npc",
+          "text": "Mara checks the independent identity record. It identifies the visitor associated with that register entry as Martin Weiss, not Leon Falk. The discrepancy remains unresolved."
+        }
+      ],
+      "expected": {
+        "name": {
+          "status": "satisfied",
+          "first_satisfied_turn": 1,
+          "evidence": [
+            {
+              "turn": 1,
+              "role": "npc",
+              "quote": "The visitor-register entry names Leon Falk at 16:45."
+            }
+          ],
+          "reason": "The register establishes the recorded name Leon Falk."
+        },
+        "corroboration": {
+          "status": "not_satisfied",
+          "first_satisfied_turn": null,
+          "evidence": [],
+          "reason": "The independent record conflicts with the register rather than corroborating it."
+        }
+      }
+    },
+    {
+      "id": "late-corroboration",
+      "description": "Identity is resolved before independent corroboration arrives.",
+      "observations": [
+        {
+          "turn": 1,
+          "role": "player",
+          "text": "What does the visitor register contain?"
+        },
+        {
+          "turn": 1,
+          "role": "npc",
+          "text": "The October 12 visitor-register entry lists visitor code LF-27."
+        },
+        {
+          "turn": 2,
+          "role": "player",
+          "text": "Who does LF-27 identify?"
+        },
+        {
+          "turn": 2,
+          "role": "npc",
+          "text": "Mara says the code has not yet been decoded."
+        },
+        {
+          "turn": 3,
+          "role": "player",
+          "text": "Please check the visitor identity index."
+        },
+        {
+          "turn": 3,
+          "role": "npc",
+          "text": "The register's own identity index resolves LF-27 to Leon Falk."
+        },
+        {
+          "turn": 4,
+          "role": "player",
+          "text": "Is that identity independently documented?"
+        },
+        {
+          "turn": 4,
+          "role": "npc",
+          "text": "Mara says she has not yet examined any independent source."
+        },
+        {
+          "turn": 5,
+          "role": "player",
+          "text": "Check the separately maintained reception identification log."
+        },
+        {
+          "turn": 5,
+          "role": "npc",
+          "text": "The reception identification log independently confirms Leon Falk's identity for the October 12 visit."
+        }
+      ],
+      "expected": {
+        "name": {
+          "status": "satisfied",
+          "first_satisfied_turn": 3,
+          "evidence": [
+            {
+              "turn": 1,
+              "role": "npc",
+              "quote": "The October 12 visitor-register entry lists visitor code LF-27."
+            },
+            {
+              "turn": 3,
+              "role": "npc",
+              "quote": "The register's own identity index resolves LF-27 to Leon Falk."
+            }
+          ],
+          "reason": "The register designation is resolved to Leon Falk at turn 3."
+        },
+        "corroboration": {
+          "status": "satisfied",
+          "first_satisfied_turn": 5,
+          "evidence": [
+            {
+              "turn": 3,
+              "role": "npc",
+              "quote": "The register's own identity index resolves LF-27 to Leon Falk."
+            },
+            {
+              "turn": 5,
+              "role": "npc",
+              "quote": "The reception identification log independently confirms Leon Falk's identity for the October 12 visit."
+            }
+          ],
+          "reason": "An independently maintained log corroborates that identity at turn 5."
+        }
+      }
+    },
+    {
+      "id": "unrelated-person",
+      "description": "Evidence about a different visitor cannot corroborate Leon Falk.",
+      "observations": [
+        {
+          "turn": 1,
+          "role": "player",
+          "text": "Who appears in the October 12 register?"
+        },
+        {
+          "turn": 1,
+          "role": "npc",
+          "text": "The visitor-register entry names Leon Falk at 16:45."
+        },
+        {
+          "turn": 2,
+          "role": "player",
+          "text": "Do we have independent identity evidence?"
+        },
+        {
+          "turn": 2,
+          "role": "npc",
+          "text": "The reception identity log confirms that Anna Berger visited the archive at 11:00. It contains no corroboration of Leon Falk's identity."
+        },
+        {
+          "turn": 3,
+          "role": "player",
+          "text": "Does Anna Berger's record prove Leon Falk's identity?"
+        },
+        {
+          "turn": 3,
+          "role": "npc",
+          "text": "Mara replies that evidence about Anna Berger does not establish Leon Falk's identity."
+        }
+      ],
+      "expected": {
+        "name": {
+          "status": "satisfied",
+          "first_satisfied_turn": 1,
+          "evidence": [
+            {
+              "turn": 1,
+              "role": "npc",
+              "quote": "The visitor-register entry names Leon Falk at 16:45."
+            }
+          ],
+          "reason": "The target visitor is named Leon Falk."
+        },
+        "corroboration": {
+          "status": "not_satisfied",
+          "first_satisfied_turn": null,
+          "evidence": [],
+          "reason": "The independent record concerns Anna Berger, not Leon Falk."
+        }
+      }
+    }
+  ]
+}
