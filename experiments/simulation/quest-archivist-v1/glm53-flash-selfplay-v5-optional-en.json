@@ -1,0 +1,285 @@
+{
+  "backend": {
+    "name": "nanogpt",
+    "base_url": "https://nano-gpt.com/api/subscription",
+    "model": "z-ai/glm-5.3-flash-uncensored",
+    "mode": "chat",
+    "api_key_env": "NANOGPT_API_KEY",
+    "timeout": 300
+  },
+  "sampling": {
+    "temperature": 0.8,
+    "top_p": 0.95,
+    "max_tokens": 8192
+  },
+  "player_sampling": {
+    "temperature": 0.7,
+    "top_p": 0.95,
+    "max_tokens": 16384
+  },
+  "runtime": {
+    "empty_response_retries": 1,
+    "controlled_player": true,
+    "player_knowledge_rules": [],
+    "goal_criteria": {
+      "schema_version": 1,
+      "goals": {
+        "subgoal-01": {
+          "requires": [],
+          "criteria": [
+            {
+              "id": "role",
+              "description": "Mara confirms her role regarding the archive collection and states at least one actual responsibility. A job title alone or Alex's unsupported assumption is insufficient.",
+              "evidence_contains": "role"
+            },
+            {
+              "id": "supervision",
+              "description": "Alex learns from a reliable statement which person or office can authorize access beyond Mara's authority. A name or unambiguous office must be given; speculation is insufficient.",
+              "evidence_contains": "supervision"
+            }
+          ],
+          "required": false,
+          "evaluate_independently": false
+        },
+        "subgoal-02": {
+          "requires": [
+            "subgoal-01"
+          ],
+          "criteria": [
+            {
+              "id": "rules",
+              "description": "Mara explains at least one concrete, binding condition for consulting public archive records, such as registration, supervision, or handling restrictions. Courtesy advice or vague suggestions are insufficient.",
+              "evidence_contains": "rules"
+            },
+            {
+              "id": "request",
+              "description": "Alex directs a concrete request to a responsible person to consult identifiable archive records. An internal plan, a generic question about archives, or mere intent is insufficient.",
+              "evidence_contains": "request"
+            }
+          ],
+          "required": false,
+          "evaluate_independently": false
+        },
+        "subgoal-03": {
+          "requires": [
+            "subgoal-02"
+          ],
+          "criteria": [
+            {
+              "id": "approval",
+              "description": "Mara explicitly permits Alex to inspect the visitor register. Mentioning its existence, a conditional offer, or a mere possibility is not approval.",
+              "evidence_contains": "approval"
+            },
+            {
+              "id": "availability",
+              "description": "The visitor register is actually made accessible to Alex, for example by presenting or opening the volume or reading the relevant contents aloud. Mentioning it or promising future access is insufficient.",
+              "evidence_contains": "availability"
+            }
+          ],
+          "required": false,
+          "evaluate_independently": false
+        },
+        "subgoal-04": {
+          "requires": [
+            "subgoal-03"
+          ],
+          "criteria": [
+            {
+              "id": "entry",
+              "description": "Alex reads or receives a specific visitor-register entry documenting a visit on the day the key disappeared. Merely presenting the book without identifying an entry is insufficient; a key sign-out from a separate log is not a visitor-register entry.",
+              "evidence_contains": "entry"
+            },
+            {
+              "id": "details",
+              "description": "The same visitor-register entry identified by criterion entry establishes both a concrete visit time and a visitor name or identifying designation. Details from a key sign-out log, reception note, or internal access list must not be combined to fill missing fields in the visitor-register entry. Linking this visitor to the key sign-out is not required here.",
+              "evidence_contains": "details"
+            }
+          ],
+          "required": false,
+          "evaluate_independently": false
+        },
+        "subgoal-05": {
+          "requires": [
+            "subgoal-04"
+          ],
+          "criteria": [
+            {
+              "id": "name",
+              "description": "A concrete personal name is established for the person designated by the visitor-register entry from subgoal-04, either directly in that register or through its associated identity index. An unresolved visitor code without a personal name counts as partially satisfied. A documented name counts as satisfied even if a later independent source disputes the attribution; that conflict is considered under corroboration. An unsupported claim by Alex is insufficient. Independent verification is not required for this criterion.",
+              "evidence_contains": "name"
+            },
+            {
+              "id": "corroboration",
+              "description": "At least one source independent of the original visitor register and its associated identity index confirms the documented name attribution for the same person or visit. Repeating the original source is insufficient. A source that identifies a different person contradicts rather than corroborates the attribution. Evidence concerning another visitor does not qualify. Concrete independent partial confirmation that does not fully establish the identity may count as partially satisfied.",
+              "evidence_contains": "corroboration"
+            }
+          ],
+          "required": false,
+          "evaluate_independently": false
+        },
+        "subgoal-06": {
+          "requires": [
+            "subgoal-04"
+          ],
+          "criteria": [
+            {
+              "id": "last-seen",
+              "description": "Alex establishes from an identified source a time or bounded interval when the missing key was demonstrably present or in custody. A visitor's presence alone does not establish possession of the key.",
+              "evidence_contains": "last-seen"
+            },
+            {
+              "id": "sequence",
+              "description": "At least two specifically evidenced events relevant to the key's disappearance are placed in a traceable chronological order, with their respective sources distinguishable. Unsupported intermediate events must not be treated as facts.",
+              "evidence_contains": "sequence"
+            }
+          ],
+          "required": false,
+          "evaluate_independently": false
+        },
+        "subgoal-07": {
+          "requires": [
+            "subgoal-05",
+            "subgoal-06"
+          ],
+          "criteria": [
+            {
+              "id": "contradiction",
+              "description": "Two identified statements or records materially conflict about the same event or fact. Different times for distinct events do not constitute a contradiction; both sources and their claims must be identified.",
+              "evidence_contains": "contradiction"
+            },
+            {
+              "id": "verification",
+              "description": "Alex investigates that specific contradiction using a further distinguishable source or obtains concrete confirmation that tests one of the conflicting claims. Repetition or speculation is insufficient.",
+              "evidence_contains": "verification"
+            }
+          ],
+          "required": false,
+          "evaluate_independently": false
+        },
+        "subgoal-08": {
+          "requires": [
+            "subgoal-07"
+          ],
+          "criteria": [
+            {
+              "id": "application",
+              "description": "Alex makes a concrete request to the competent person or office for access to restricted vault records. General curiosity or a request to an unauthorized person is insufficient.",
+              "evidence_contains": "application"
+            },
+            {
+              "id": "authorization",
+              "description": "The competent person or office explicitly grants Alex the requested scope of access to restricted vault records. Submission, review, or possible future approval is insufficient.",
+              "evidence_contains": "authorization"
+            }
+          ],
+          "required": false,
+          "evaluate_independently": false
+        },
+        "subgoal-09": {
+          "requires": [
+            "subgoal-08"
+          ],
+          "criteria": [
+            {
+              "id": "access",
+              "description": "Following authorization, Alex actually gains access to vault records within the approved scope, rather than merely hearing about them or receiving a promise of future access.",
+              "evidence_contains": "access"
+            },
+            {
+              "id": "document",
+              "description": "Alex reads or receives the contents of a specifically identifiable entry in those vault records and learns a definite fact relevant to the missing-key investigation. Merely referring to the document is insufficient.",
+              "evidence_contains": "document"
+            }
+          ],
+          "required": false,
+          "evaluate_independently": false
+        },
+        "subgoal-10": {
+          "requires": [
+            "subgoal-07",
+            "subgoal-09"
+          ],
+          "criteria": [
+            {
+              "id": "clue",
+              "description": "Alex obtains an evidenced clue pointing to a spatially identifiable and in-principle inspectable possible location of the key. A vague area or intuition alone is insufficient.",
+              "evidence_contains": "clue"
+            },
+            {
+              "id": "reasoning",
+              "description": "Alex explicitly connects that location clue to at least one previously evidenced investigative finding through understandable reasoning. An unsupported conclusion is insufficient.",
+              "evidence_contains": "reasoning"
+            }
+          ],
+          "required": false,
+          "evaluate_independently": false
+        },
+        "subgoal-11": {
+          "requires": [
+            "subgoal-10"
+          ],
+          "criteria": [
+            {
+              "id": "found",
+              "description": "The actual missing key is physically discovered at the inspected location and identified as that key through observable features or reliable circumstances. Suspicion or a bare claim of discovery is insufficient.",
+              "evidence_contains": "found"
+            },
+            {
+              "id": "custody",
+              "description": "The recovered key is demonstrably secured or transferred to an authorized custodian. Merely intending to secure it later is insufficient.",
+              "evidence_contains": "custody"
+            }
+          ],
+          "required": true,
+          "evaluate_independently": true
+        },
+        "subgoal-12": {
+          "requires": [
+            "subgoal-11"
+          ],
+          "criteria": [
+            {
+              "id": "report",
+              "description": "Alex communicates a concrete final report summarizing the confirmed recovery of the key, material verified findings, and decisive supporting evidence. A simple claim of success is insufficient.",
+              "evidence_contains": "report"
+            },
+            {
+              "id": "handover",
+              "description": "A person responsible for closing the case receives the report or explicitly acknowledges a proper final handover. A planned or merely asserted handover without an identifiable recipient is insufficient.",
+              "evidence_contains": "handover"
+            }
+          ],
+          "required": true,
+          "evaluate_independently": true
+        }
+      }
+    },
+    "semantic_evaluator": {
+      "mode": "llm",
+      "id": "archivist-quest-v1-deepseek-en",
+      "backend": {
+        "name": "nanogpt",
+        "base_url": "https://nano-gpt.com/api",
+        "model": "deepseek/deepseek-v4.1-flash:thinking",
+        "api_key_env": "NANOGPT_API_KEY",
+        "timeout": 300
+      },
+      "sampling": {
+        "temperature": 1.0,
+        "top_p": 0.95,
+        "max_tokens": 8192
+      },
+      "max_attempts": 2,
+      "quest_scheduler": "direct_supersession"
+    },
+    "player_control_mode": "narrative"
+  },
+  "player_backend": {
+    "name": "nanogpt",
+    "base_url": "https://nano-gpt.com/api/subscription",
+    "model": "z-ai/glm-5.3-flash-uncensored",
+    "mode": "chat",
+    "api_key_env": "NANOGPT_API_KEY",
+    "timeout": 300
+  }
+}

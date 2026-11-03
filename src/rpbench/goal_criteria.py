@@ -38,10 +38,17 @@ def validate_goal_criteria(definition, state):
             not isinstance(definition_entry, Mapping)
             or not {"criteria"} <= set(definition_entry)
             or set(definition_entry) - {
-                "criteria", "superseded_by", "requires"
+                "criteria", "superseded_by", "requires", "required", "evaluate_independently"
             }
         ):
             raise ValueError("Invalid goal criteria entry")
+
+        for field in ("required", "evaluate_independently"):
+            if (
+                field in definition_entry
+                and type(definition_entry[field]) is not bool
+            ):
+                raise ValueError(f"Invalid {field}: {goal_id}")
 
         requirements = definition_entry.get("requires", [])
         if (
@@ -232,4 +239,38 @@ def replay_goal_criteria(definition, state, evaluations):
     return {
         "schema_version": SCHEMA_VERSION,
         "goals": progress,
+    }
+
+
+
+def evaluation_prerequisites_met(definition, state, goal_id):
+    """Eligibility for evidence evaluation, not player scheduling."""
+    entry = definition["goals"].get(goal_id, {})
+    if entry.get("evaluate_independently", False):
+        if goal_id not in state["goals"]:
+            raise ValueError(f"Unknown player goal: {goal_id}")
+        return True
+    return prerequisites_met(definition, state, goal_id)
+
+
+def required_goal_summary(definition, state):
+    """Independent overall completion decision from required goals."""
+    goals = definition["goals"]
+    pending = [
+        goal_id for goal_id, entry in goals.items()
+        if entry.get("required", True)
+        and state["goals"][goal_id]["status"] != "completed"
+    ]
+    required = [
+        goal_id for goal_id, entry in goals.items()
+        if entry.get("required", True)
+    ]
+    return {
+        "complete": not pending and bool(required),
+        "required_goals": required,
+        "missing_required_goals": pending,
+        "optional_goals": [
+            goal_id for goal_id, entry in goals.items()
+            if not entry.get("required", True)
+        ],
     }

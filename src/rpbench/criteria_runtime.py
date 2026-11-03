@@ -10,7 +10,7 @@ from .core import Backend, append, dump, load
 from .progress_status import emit
 from .evaluator_llm import parse_evaluator_json
 from .goal_criteria import (
-    validate_goal_criteria, prerequisites_met,
+    validate_goal_criteria, prerequisites_met, evaluation_prerequisites_met, required_goal_summary,
 )
 from .semantic_criteria import (
     EVENT_TYPE,
@@ -398,9 +398,18 @@ def refresh_criteria(root, definition, observations, settings):
                             criterion_id
                         ]
 
+            independent_goals = [
+                identifier
+                for identifier, entry in definition["goals"].items()
+                if entry.get("evaluate_independently", False)
+                and plan_state["goals"][identifier]["status"]
+                    not in {"completed", "skipped", "failed"}
+            ]
+
             goal_order = list(dict.fromkeys(
                 early_goals
                 + ([active] if active is not None else [])
+                + independent_goals
             ))
 
         elif settings.get("quest_opportunity_enabled", False):
@@ -518,7 +527,7 @@ def refresh_criteria(root, definition, observations, settings):
         )
 
         for goal_id in goal_order:
-            if not prerequisites_met(
+            if not evaluation_prerequisites_met(
                 definition, eligibility_state, goal_id
             ):
                 continue
@@ -701,6 +710,9 @@ def refresh_criteria(root, definition, observations, settings):
 
     state, progress, transitions = advance_criteria_goals(
         original, definition, observations, accepted
+    )
+    progress["overall_goal"] = required_goal_summary(
+        definition, state
     )
     dump(root / "state.json", state)
     dump(root / "criteria_progress.json", progress)

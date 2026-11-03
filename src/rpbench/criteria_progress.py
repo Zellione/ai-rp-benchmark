@@ -9,7 +9,7 @@ from copy import deepcopy
 
 from .semantic_criteria import replay_semantic_criteria
 from .state import apply_confirmed_event
-from .goal_criteria import prerequisites_met
+from .goal_criteria import evaluation_prerequisites_met
 
 
 def advance_criteria_goals(
@@ -33,7 +33,7 @@ def advance_criteria_goals(
     transitions = []
 
     for goal_id, result in progress["goals"].items():
-        if not prerequisites_met(definition, updated, goal_id):
+        if not evaluation_prerequisites_met(definition, updated, goal_id):
             continue
         if not result["proposed_satisfied"]:
             continue
