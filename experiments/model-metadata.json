@@ -1,0 +1,38 @@
+{
+  "schema_version": 1,
+  "models": {
+    "mistral-small4-119b": {
+      "family": "Mistral Small 4",
+      "architecture": "moe",
+      "total_parameters_b": 119.0,
+      "active_parameters_b": 6.5,
+      "parameter_source": "https://docs.mistral.ai/models/mistral-small-4-0-26-03"
+    },
+    "glm-5.3-flash": {
+      "family": "GLM 5.3 Flash",
+      "architecture": "moe",
+      "total_parameters_b": 320.0,
+      "active_parameters_b": 18.0,
+      "parameter_source": "https://build.nvidia.com/z-ai/glm-5-3-flash/modelcard"
+    }
+  },
+  "deployments": {
+    "mistral-small4-iq3-xxs-local": {
+      "model_id": "mistral-small4-119b",
+      "quantization": "UD-IQ3_XXS",
+      "weight_precision_verified": true,
+      "backend": "llamacpp",
+      "hosting": "local",
+      "hardware": "RTX 5090 with CPU offload"
+    },
+    "glm-5.3-flash-uncensored-nanogpt": {
+      "model_id": "glm-5.3-flash",
+      "variant": "uncensored",
+      "quantization": null,
+      "weight_precision_verified": false,
+      "backend": "nanogpt",
+      "hosting": "remote",
+      "hardware": null
+    }
+  }
+}
